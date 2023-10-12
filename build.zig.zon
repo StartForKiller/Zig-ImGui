@@ -3,11 +3,11 @@
     .version = "0.12.589",
     .dependencies = .{
         .freetype = .{
-            .url = "https://gitlab.com/joshua.software.dev/freetype-zigmasterfix/-/archive/master/freetype-zigmasterfix-master.tar.gz",
-            .hash = "122063f2782319ab6bb494ce80c66b827b17ce308d729ae6a85ee9202b7efe11ecdb",
+            .url = "https://gitlab.com/joshua.software.dev/freetype-zigmasterfix/-/archive/ee643adc566f3ed6a08defe6f93a9357569669b0/freetype-zigmasterfix-ee643adc566f3ed6a08defe6f93a9357569669b0.tar.gz",
+            .hash = "1220622bbd4069b1c3868f6b5551165382edb3c817d07da7ee1e17d19a262e776d15",
         },
         .brotli = .{
-            .url = "https://gitlab.com/joshua.software.dev/brotli-zigmasterfix/-/archive/master/brotli-zigmasterfix-master.tar.gz",
+            .url = "https://gitlab.com/joshua.software.dev/brotli-zigmasterfix/-/archive/707d7a032e761a86066cda4549c6e07679142648/brotli-zigmasterfix-707d7a032e761a86066cda4549c6e07679142648.tar.gz",
             .hash = "12209a9030e683f5947b18f6a8dbe8ef36d94c2e09768430ace5a194d674e51226e3",
         },
     },
