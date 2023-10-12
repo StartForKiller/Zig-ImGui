@@ -12,6 +12,9 @@
         },
     },
     .paths = .{
+        ".gitattributes",
+        ".gitignore",
+        ".gitmodules",
         "build.zig.zon",
         "build.zig",
         "generate.bat",
@@ -20,7 +23,7 @@
         "pointer_rules.py",
         "README.md",
         "template.zig",
-        "cimgui/",
+        "cimgui",
         "third_party",
         "zig-imgui/",
     },
