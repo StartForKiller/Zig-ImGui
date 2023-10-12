@@ -23,8 +23,7 @@
         "pointer_rules.py",
         "README.md",
         "template.zig",
-        "cimgui",
-        "third_party",
+        "third_party/",
         "zig-imgui/",
     },
 }
