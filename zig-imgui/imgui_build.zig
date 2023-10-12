@@ -51,64 +51,64 @@ pub fn link_lunasvg_source_files(b: *std.Build, exe: *std.Build.Step.Compile) vo
         "lunasvg",
     });
 
+    const plutovg_sources: []const []const u8 = &[_][]const u8 {
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg.c" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-paint.c" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-geometry.c" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-blend.c" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-rle.c" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-dash.c" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-ft-raster.c" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-ft-stroker.c" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-ft-math.c" }),
+    };
     exe.addIncludePath(.{ .path = b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg" }) });
-    exe.addCSourceFiles
-    (
-        &[_][]const u8
-        {
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg.c" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-paint.c" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-geometry.c" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-blend.c" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-rle.c" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-dash.c" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-ft-raster.c" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-ft-stroker.c" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "3rdparty", "plutovg", "plutovg-ft-math.c" }),
-        },
-        &[_][]const u8
-        {
-            "-std=c11",
-            "-fno-sanitize=undefined",
-            "-ffunction-sections",
-            "-fvisibility=hidden",
-        }
-    );
+    for (plutovg_sources) |file| {
+        exe.addCSourceFile(.{
+            .file = .{ .path = file },
+            .flags = &.{
+                "-std=c11",
+                "-fno-sanitize=undefined",
+                "-ffunction-sections",
+                "-fvisibility=hidden",
+            }
+        });
+    }
 
+    const lunasvg_sources: []const []const u8 = &[_][]const u8 {
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "lunasvg.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "element.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "property.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "parser.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "layoutcontext.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "canvas.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "clippathelement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "defselement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "gelement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "geometryelement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "graphicselement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "maskelement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "markerelement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "paintelement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "stopelement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "styledelement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "styleelement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "svgelement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "symbolelement.cpp" }),
+        b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "useelement.cpp" }),
+    };
     exe.addIncludePath(.{ .path = b.pathJoin(&[_][]const u8 { lunasvg_path, "include" }) });
-    exe.addCSourceFiles
-    (
-        &[_][]const u8
-        {
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "lunasvg.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "element.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "property.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "parser.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "layoutcontext.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "canvas.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "clippathelement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "defselement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "gelement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "geometryelement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "graphicselement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "maskelement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "markerelement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "paintelement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "stopelement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "styledelement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "styleelement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "svgelement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "symbolelement.cpp" }),
-            b.pathJoin(&[_][]const u8 { lunasvg_path, "source", "useelement.cpp" }),
-        },
-        &[_][]const u8
-        {
-            "-std=c++11",
-            "-fno-sanitize=undefined",
-            "-ffunction-sections",
-            "-fvisibility=hidden",
-        }
-    );
+    for (lunasvg_sources) |file| {
+        exe.addCSourceFile(.{
+            .file = .{ .path = file },
+            .flags = &.{
+                "-std=c++11",
+                "-fno-sanitize=undefined",
+                "-ffunction-sections",
+                "-fvisibility=hidden",
+            }
+        });
+    }
 }
 
 pub fn get_artifact(
