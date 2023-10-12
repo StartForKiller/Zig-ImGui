@@ -11,5 +11,17 @@
             .hash = "12209a9030e683f5947b18f6a8dbe8ef36d94c2e09768430ace5a194d674e51226e3",
         },
     },
-    .paths = .{""},
+    .paths = .{
+        "build.zig.zon",
+        "build.zig",
+        "generate.bat",
+        "generate.py",
+        "LICENSE",
+        "pointer_rules.py",
+        "README.md",
+        "template.zig",
+        "cimgui/",
+        "third_party",
+        "zig-imgui/",
+    },
 }
