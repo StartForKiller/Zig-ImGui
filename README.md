@@ -54,11 +54,13 @@ Zig-ImGui strives to be easy to use.  To use the pre-generated bindings, do the 
         // * Stateful Unicode features such as skin tone modifiers are not
         //   supported by the text renderer.
         .enable_lunasvg = false // if unspecified, the default is false
+        // Enable building ImGui's OpenGL loader backend
+        .enable_opengl = false // if unspecified, the default is false
     });
     ```
 - In your project, use `@import("Zig-ImGui")` to obtain the bindings.
-- For more detailed documentation, see the [official ImGui documentation](https://github.com/ocornut/imgui/tree/v1.88/docs).
-- For an example of a real project using these bindings, see [joshua-software-dev/Lurk](https://github.com/joshua-software-dev/Lurk).
+- For more detailed documentation, see the [official ImGui documentation](https://github.com/ocornut/imgui/tree/v1.89.9/docs).
+- For an example of a real project using these bindings, see [joshua-software-dev/Lurk](https://gitlab.com/joshua.software.dev/Lurk).
 
 ## Binding style
 
