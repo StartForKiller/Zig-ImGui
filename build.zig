@@ -26,6 +26,10 @@ pub fn build(b: *std.Build) void {
         "Enable building lunasvg to provide better emoji support in freetype. Requires freetype to be enabled."
     ) orelse false;
 
+    const enable_opengl = b.option(bool, "enable_opengl",
+        "Enable building ImGui's OpenGL loader backend."
+    ) orelse false;
+
     const freetype_dep =
         if (enable_freetype)
             b.dependency("freetype", .{ .target = target, .optimize = optimize })
@@ -33,7 +37,7 @@ pub fn build(b: *std.Build) void {
             null;
 
     const module = imgui_build.get_module(b);
-    const lib = imgui_build.get_artifact(b, freetype_dep, enable_lunasvg, target, optimize);
+    const lib = imgui_build.get_artifact(b, freetype_dep, enable_lunasvg, enable_opengl, target, optimize);
     b.installArtifact(lib);
 
     imgui_build.add_test_step(b, "test", module, lib, target, optimize);
