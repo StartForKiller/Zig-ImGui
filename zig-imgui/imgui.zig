@@ -464,7 +464,7 @@ pub const KeyChord = i32;
 pub const MemAllocFunc = ?*fn (sz: usize, user_data: ?*anyopaque) callconv(.C) ?*anyopaque;
 pub const MemFreeFunc = ?*fn (ptr: ?*anyopaque, user_data: ?*anyopaque) callconv(.C) void;
 pub const SizeCallback = ?*fn (data: ?*SizeCallbackData) callconv(.C) void;
-pub const TextureID = ?*anyopaque;
+pub const TextureID = enum(u64) { null_handle = 0, _ };
 pub const Wchar = Wchar32;
 pub const Wchar16 = u16;
 pub const Wchar32 = u32;

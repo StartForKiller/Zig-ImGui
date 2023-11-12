@@ -2,6 +2,7 @@
 #define IMGUI_DISABLE_OBSOLETE_KEYIO 1
 #define IMGUI_USE_WCHAR32 1
 #define IMGUI_IMPL_API extern "C"
+#define ImTextureID unsigned long long
 
 #include "imgui/imgui.cpp"
 #include "imgui/imgui_draw.cpp"
