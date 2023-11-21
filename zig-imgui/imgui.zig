@@ -10,7 +10,7 @@ const imgui = @This();
 
 pub const DrawCallback_ResetRenderState: DrawCallback = null;
 
-pub const VERSION = "1.89.9";
+pub const VERSION = "1.90.0";
 pub fn CHECKVERSION() void {
     if (builtin.mode != .ReleaseFast) {
         assert(raw.igDebugCheckVersionAndDataLayout(VERSION, @sizeOf(IO), @sizeOf(Style), @sizeOf(Vec2), @sizeOf(Vec4), @sizeOf(DrawVert), @sizeOf(DrawIdx)));
@@ -450,6 +450,8 @@ pub const allocator: std.mem.Allocator = .{
     .vtable = &allocator_vtable,
 };
 
+pub const TextureID = enum(u64) { null_handle = 0, _ };
+
 // ---------------- Everything above here comes from template.zig ------------------
 // ---------------- Everything below here is generated -----------------------------
 
@@ -464,7 +466,6 @@ pub const KeyChord = i32;
 pub const MemAllocFunc = ?*fn (sz: usize, user_data: ?*anyopaque) callconv(.C) ?*anyopaque;
 pub const MemFreeFunc = ?*fn (ptr: ?*anyopaque, user_data: ?*anyopaque) callconv(.C) void;
 pub const SizeCallback = ?*fn (data: ?*SizeCallbackData) callconv(.C) void;
-pub const TextureID = enum(u64) { null_handle = 0, _ };
 pub const Wchar = Wchar32;
 pub const Wchar16 = u16;
 pub const Wchar32 = u32;
@@ -678,6 +679,46 @@ pub const ButtonFlags = packed struct {
     pub usingnamespace FlagsMixin(@This());
 };
 
+pub const ChildFlagsInt = FlagsInt;
+pub const ChildFlags = packed struct {
+    Border: bool = false,
+    AlwaysUseWindowPadding: bool = false,
+    ResizeX: bool = false,
+    ResizeY: bool = false,
+    AutoResizeX: bool = false,
+    AutoResizeY: bool = false,
+    AlwaysAutoResize: bool = false,
+    FrameStyle: bool = false,
+    __reserved_bit_08: bool = false,
+    __reserved_bit_09: bool = false,
+    __reserved_bit_10: bool = false,
+    __reserved_bit_11: bool = false,
+    __reserved_bit_12: bool = false,
+    __reserved_bit_13: bool = false,
+    __reserved_bit_14: bool = false,
+    __reserved_bit_15: bool = false,
+    __reserved_bit_16: bool = false,
+    __reserved_bit_17: bool = false,
+    __reserved_bit_18: bool = false,
+    __reserved_bit_19: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
+    __reserved_bit_22: bool = false,
+    __reserved_bit_23: bool = false,
+    __reserved_bit_24: bool = false,
+    __reserved_bit_25: bool = false,
+    __reserved_bit_26: bool = false,
+    __reserved_bit_27: bool = false,
+    __reserved_bit_28: bool = false,
+    __reserved_bit_29: bool = false,
+    __reserved_bit_30: bool = false,
+    __reserved_bit_31: bool = false,
+
+    pub const None: @This() = .{};
+
+    pub usingnamespace FlagsMixin(@This());
+};
+
 pub const ColorEditFlagsInt = FlagsInt;
 pub const ColorEditFlags = packed struct {
     __reserved_bit_00: bool = false,
@@ -732,7 +773,7 @@ pub const ComboFlags = packed struct {
     HeightLargest: bool = false,
     NoArrowButton: bool = false,
     NoPreview: bool = false,
-    __reserved_bit_07: bool = false,
+    WidthFitPreview: bool = false,
     __reserved_bit_08: bool = false,
     __reserved_bit_09: bool = false,
     __reserved_bit_10: bool = false,
@@ -848,12 +889,12 @@ pub const DockNodeFlagsInt = FlagsInt;
 pub const DockNodeFlags = packed struct {
     KeepAliveOnly: bool = false,
     __reserved_bit_01: bool = false,
-    NoDockingInCentralNode: bool = false,
+    NoDockingOverCentralNode: bool = false,
     PassthruCentralNode: bool = false,
-    NoSplit: bool = false,
+    NoDockingSplit: bool = false,
     NoResize: bool = false,
     AutoHideTabBar: bool = false,
-    __reserved_bit_07: bool = false,
+    NoUndocking: bool = false,
     __reserved_bit_08: bool = false,
     __reserved_bit_09: bool = false,
     __reserved_bit_10: bool = false,
@@ -1314,7 +1355,7 @@ pub const TableColumnFlags = packed struct {
     PreferSortDescending: bool = false,
     IndentEnable: bool = false,
     IndentDisable: bool = false,
-    __reserved_bit_18: bool = false,
+    AngledHeader: bool = false,
     __reserved_bit_19: bool = false,
     __reserved_bit_20: bool = false,
     __reserved_bit_21: bool = false,
@@ -1367,7 +1408,7 @@ pub const TableFlags = packed struct {
     ScrollY: bool = false,
     SortMulti: bool = false,
     SortTristate: bool = false,
-    __reserved_bit_28: bool = false,
+    HighlightHoveredColumn: bool = false,
     __reserved_bit_29: bool = false,
     __reserved_bit_30: bool = false,
     __reserved_bit_31: bool = false,
@@ -1439,8 +1480,8 @@ pub const TreeNodeFlags = packed struct {
     FramePadding: bool = false,
     SpanAvailWidth: bool = false,
     SpanFullWidth: bool = false,
+    SpanAllColumns: bool = false,
     NavLeftJumpsBackHere: bool = false,
-    __reserved_bit_14: bool = false,
     __reserved_bit_15: bool = false,
     __reserved_bit_16: bool = false,
     __reserved_bit_17: bool = false,
@@ -1523,12 +1564,12 @@ pub const WindowFlags = packed struct {
     NoBringToFrontOnFocus: bool = false,
     AlwaysVerticalScrollbar: bool = false,
     AlwaysHorizontalScrollbar: bool = false,
-    AlwaysUseWindowPadding: bool = false,
-    __reserved_bit_17: bool = false,
     NoNavInputs: bool = false,
     NoNavFocus: bool = false,
     UnsavedDocument: bool = false,
     NoDocking: bool = false,
+    __reserved_bit_20: bool = false,
+    __reserved_bit_21: bool = false,
     __reserved_bit_22: bool = false,
     NavFlattened: bool = false,
     ChildWindow: bool = false,
@@ -1710,74 +1751,88 @@ pub const Key = enum (i32) {
     F10 = 581,
     F11 = 582,
     F12 = 583,
-    Apostrophe = 584,
-    Comma = 585,
-    Minus = 586,
-    Period = 587,
-    Slash = 588,
-    Semicolon = 589,
-    Equal = 590,
-    LeftBracket = 591,
-    Backslash = 592,
-    RightBracket = 593,
-    GraveAccent = 594,
-    CapsLock = 595,
-    ScrollLock = 596,
-    NumLock = 597,
-    PrintScreen = 598,
-    Pause = 599,
-    Keypad0 = 600,
-    Keypad1 = 601,
-    Keypad2 = 602,
-    Keypad3 = 603,
-    Keypad4 = 604,
-    Keypad5 = 605,
-    Keypad6 = 606,
-    Keypad7 = 607,
-    Keypad8 = 608,
-    Keypad9 = 609,
-    KeypadDecimal = 610,
-    KeypadDivide = 611,
-    KeypadMultiply = 612,
-    KeypadSubtract = 613,
-    KeypadAdd = 614,
-    KeypadEnter = 615,
-    KeypadEqual = 616,
-    GamepadStart = 617,
-    GamepadBack = 618,
-    GamepadFaceLeft = 619,
-    GamepadFaceRight = 620,
-    GamepadFaceUp = 621,
-    GamepadFaceDown = 622,
-    GamepadDpadLeft = 623,
-    GamepadDpadRight = 624,
-    GamepadDpadUp = 625,
-    GamepadDpadDown = 626,
-    GamepadL1 = 627,
-    GamepadR1 = 628,
-    GamepadL2 = 629,
-    GamepadR2 = 630,
-    GamepadL3 = 631,
-    GamepadR3 = 632,
-    GamepadLStickLeft = 633,
-    GamepadLStickRight = 634,
-    GamepadLStickUp = 635,
-    GamepadLStickDown = 636,
-    GamepadRStickLeft = 637,
-    GamepadRStickRight = 638,
-    GamepadRStickUp = 639,
-    GamepadRStickDown = 640,
-    MouseLeft = 641,
-    MouseRight = 642,
-    MouseMiddle = 643,
-    MouseX1 = 644,
-    MouseX2 = 645,
-    MouseWheelX = 646,
-    MouseWheelY = 647,
-    ReservedForModCtrl = 648,
-    ReservedForModShift = 649,
-    ReservedForModAlt = 650,
-    ReservedForModSuper = 651,
+    F13 = 584,
+    F14 = 585,
+    F15 = 586,
+    F16 = 587,
+    F17 = 588,
+    F18 = 589,
+    F19 = 590,
+    F20 = 591,
+    F21 = 592,
+    F22 = 593,
+    F23 = 594,
+    F24 = 595,
+    Apostrophe = 596,
+    Comma = 597,
+    Minus = 598,
+    Period = 599,
+    Slash = 600,
+    Semicolon = 601,
+    Equal = 602,
+    LeftBracket = 603,
+    Backslash = 604,
+    RightBracket = 605,
+    GraveAccent = 606,
+    CapsLock = 607,
+    ScrollLock = 608,
+    NumLock = 609,
+    PrintScreen = 610,
+    Pause = 611,
+    Keypad0 = 612,
+    Keypad1 = 613,
+    Keypad2 = 614,
+    Keypad3 = 615,
+    Keypad4 = 616,
+    Keypad5 = 617,
+    Keypad6 = 618,
+    Keypad7 = 619,
+    Keypad8 = 620,
+    Keypad9 = 621,
+    KeypadDecimal = 622,
+    KeypadDivide = 623,
+    KeypadMultiply = 624,
+    KeypadSubtract = 625,
+    KeypadAdd = 626,
+    KeypadEnter = 627,
+    KeypadEqual = 628,
+    AppBack = 629,
+    AppForward = 630,
+    GamepadStart = 631,
+    GamepadBack = 632,
+    GamepadFaceLeft = 633,
+    GamepadFaceRight = 634,
+    GamepadFaceUp = 635,
+    GamepadFaceDown = 636,
+    GamepadDpadLeft = 637,
+    GamepadDpadRight = 638,
+    GamepadDpadUp = 639,
+    GamepadDpadDown = 640,
+    GamepadL1 = 641,
+    GamepadR1 = 642,
+    GamepadL2 = 643,
+    GamepadR2 = 644,
+    GamepadL3 = 645,
+    GamepadR3 = 646,
+    GamepadLStickLeft = 647,
+    GamepadLStickRight = 648,
+    GamepadLStickUp = 649,
+    GamepadLStickDown = 650,
+    GamepadRStickLeft = 651,
+    GamepadRStickRight = 652,
+    GamepadRStickUp = 653,
+    GamepadRStickDown = 654,
+    MouseLeft = 655,
+    MouseRight = 656,
+    MouseMiddle = 657,
+    MouseX1 = 658,
+    MouseX2 = 659,
+    MouseWheelX = 660,
+    MouseWheelY = 661,
+    ReservedForModCtrl = 662,
+    ReservedForModShift = 663,
+    ReservedForModAlt = 664,
+    ReservedForModSuper = 665,
     ImGuiMod_Ctrl = 1 << 12,
     ImGuiMod_Shift = 1 << 13,
     ImGuiMod_Alt = 1 << 14,
@@ -1786,12 +1841,12 @@ pub const Key = enum (i32) {
     ImGuiMod_Mask_ = 0xF800,
     _,
 
-    pub const COUNT = 652;
+    pub const COUNT = 666;
     pub const NamedKey_BEGIN = 512;
     pub const NamedKey_END = @This().COUNT;
     pub const NamedKey_COUNT = @This().NamedKey_END - @This().NamedKey_BEGIN;
-    pub const KeysData_SIZE = @This().COUNT;
-    pub const KeysData_OFFSET = 0;
+    pub const KeysData_SIZE = @This().NamedKey_COUNT;
+    pub const KeysData_OFFSET = @This().NamedKey_BEGIN;
 };
 
 pub const MouseButton = enum (i32) {
@@ -1828,28 +1883,6 @@ pub const MouseSource = enum (i32) {
     pub const COUNT = 3;
 };
 
-pub const NavInput = enum (i32) {
-    Activate = 0,
-    Cancel = 1,
-    Input = 2,
-    Menu = 3,
-    DpadLeft = 4,
-    DpadRight = 5,
-    DpadUp = 6,
-    DpadDown = 7,
-    LStickLeft = 8,
-    LStickRight = 9,
-    LStickUp = 10,
-    LStickDown = 11,
-    FocusPrev = 12,
-    FocusNext = 13,
-    TweakSlow = 14,
-    TweakFast = 15,
-    _,
-
-    pub const COUNT = 16;
-};
-
 pub const SortDirection = enum (i32) {
     None = 0,
     Ascending = 1,
@@ -1881,15 +1914,16 @@ pub const StyleVar = enum (i32) {
     GrabMinSize = 20,
     GrabRounding = 21,
     TabRounding = 22,
-    ButtonTextAlign = 23,
-    SelectableTextAlign = 24,
-    SeparatorTextBorderSize = 25,
-    SeparatorTextAlign = 26,
-    SeparatorTextPadding = 27,
-    DockingSeparatorSize = 28,
+    TabBarBorderSize = 23,
+    ButtonTextAlign = 24,
+    SelectableTextAlign = 25,
+    SeparatorTextBorderSize = 26,
+    SeparatorTextAlign = 27,
+    SeparatorTextPadding = 28,
+    DockingSeparatorSize = 29,
     _,
 
-    pub const COUNT = 29;
+    pub const COUNT = 30;
 };
 
 pub const TableBgTarget = enum (i32) {
@@ -2009,6 +2043,18 @@ pub const DrawList = extern struct {
 
     /// AddDrawCmd(self: *DrawList) void
     pub const AddDrawCmd = raw.ImDrawList_AddDrawCmd;
+
+    /// AddEllipseExt(self: *DrawList, center: Vec2, radius_x: f32, radius_y: f32, col: u32, rot: f32, num_segments: i32, thickness: f32) void
+    pub const AddEllipseExt = raw.ImDrawList_AddEllipse;
+    pub inline fn AddEllipse(self: *DrawList, center: Vec2, radius_x: f32, radius_y: f32, col: u32) void {
+        return @This().AddEllipseExt(self, center, radius_x, radius_y, col, 0.0, 0, 1.0);
+    }
+
+    /// AddEllipseFilledExt(self: *DrawList, center: Vec2, radius_x: f32, radius_y: f32, col: u32, rot: f32, num_segments: i32) void
+    pub const AddEllipseFilledExt = raw.ImDrawList_AddEllipseFilled;
+    pub inline fn AddEllipseFilled(self: *DrawList, center: Vec2, radius_x: f32, radius_y: f32, col: u32) void {
+        return @This().AddEllipseFilledExt(self, center, radius_x, radius_y, col, 0.0, 0);
+    }
 
     /// AddImageExt(self: *DrawList, user_texture_id: TextureID, p_min: Vec2, p_max: Vec2, uv_min: Vec2, uv_max: Vec2, col: u32) void
     pub const AddImageExt = raw.ImDrawList_AddImage;
@@ -2145,6 +2191,12 @@ pub const DrawList = extern struct {
 
     /// PathClear(self: *DrawList) void
     pub const PathClear = raw.ImDrawList_PathClear;
+
+    /// PathEllipticalArcToExt(self: *DrawList, center: Vec2, radius_x: f32, radius_y: f32, rot: f32, a_min: f32, a_max: f32, num_segments: i32) void
+    pub const PathEllipticalArcToExt = raw.ImDrawList_PathEllipticalArcTo;
+    pub inline fn PathEllipticalArcTo(self: *DrawList, center: Vec2, radius_x: f32, radius_y: f32, rot: f32, a_min: f32, a_max: f32) void {
+        return @This().PathEllipticalArcToExt(self, center, radius_x, radius_y, rot, a_min, a_max, 0);
+    }
 
     /// PathFillConvex(self: *DrawList, col: u32) void
     pub const PathFillConvex = raw.ImDrawList_PathFillConvex;
@@ -2421,16 +2473,16 @@ pub const FontAtlas = extern struct {
         return @This().AddFontFromMemoryCompressedBase85TTFExt(self, compressed_font_data_base85, size_pixels, null, null);
     }
 
-    /// AddFontFromMemoryCompressedTTFExt(self: *FontAtlas, compressed_font_data: ?*const anyopaque, compressed_font_size: i32, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) ?*Font
+    /// AddFontFromMemoryCompressedTTFExt(self: *FontAtlas, compressed_font_data: ?*const anyopaque, compressed_font_data_size: i32, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) ?*Font
     pub const AddFontFromMemoryCompressedTTFExt = raw.ImFontAtlas_AddFontFromMemoryCompressedTTF;
-    pub inline fn AddFontFromMemoryCompressedTTF(self: *FontAtlas, compressed_font_data: ?*const anyopaque, compressed_font_size: i32, size_pixels: f32) ?*Font {
-        return @This().AddFontFromMemoryCompressedTTFExt(self, compressed_font_data, compressed_font_size, size_pixels, null, null);
+    pub inline fn AddFontFromMemoryCompressedTTF(self: *FontAtlas, compressed_font_data: ?*const anyopaque, compressed_font_data_size: i32, size_pixels: f32) ?*Font {
+        return @This().AddFontFromMemoryCompressedTTFExt(self, compressed_font_data, compressed_font_data_size, size_pixels, null, null);
     }
 
-    /// AddFontFromMemoryTTFExt(self: *FontAtlas, font_data: ?*anyopaque, font_size: i32, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) ?*Font
+    /// AddFontFromMemoryTTFExt(self: *FontAtlas, font_data: ?*anyopaque, font_data_size: i32, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) ?*Font
     pub const AddFontFromMemoryTTFExt = raw.ImFontAtlas_AddFontFromMemoryTTF;
-    pub inline fn AddFontFromMemoryTTF(self: *FontAtlas, font_data: ?*anyopaque, font_size: i32, size_pixels: f32) ?*Font {
-        return @This().AddFontFromMemoryTTFExt(self, font_data, font_size, size_pixels, null, null);
+    pub inline fn AddFontFromMemoryTTF(self: *FontAtlas, font_data: ?*anyopaque, font_data_size: i32, size_pixels: f32) ?*Font {
+        return @This().AddFontFromMemoryTTFExt(self, font_data, font_data_size, size_pixels, null, null);
     }
 
     /// Build(self: *FontAtlas) bool
@@ -2546,6 +2598,7 @@ pub const FontConfig = extern struct {
     MergeMode: bool,
     FontBuilderFlags: u32,
     RasterizerMultiply: f32,
+    RasterizerDensity: f32,
     EllipsisChar: Wchar,
     Name: [40]u8,
     DstFont: ?*Font,
@@ -2655,7 +2708,6 @@ pub const IO = extern struct {
     SetClipboardTextFn: ?*fn (user_data: ?*anyopaque, text: ?[*:0]const u8) callconv(.C) void,
     ClipboardUserData: ?*anyopaque,
     SetPlatformImeDataFn: ?*fn (viewport: ?*Viewport, data: ?*PlatformImeData) callconv(.C) void,
-    _UnusedPadding: ?*anyopaque,
     PlatformLocaleDecimalPoint: Wchar,
     WantCaptureMouse: bool,
     WantCaptureKeyboard: bool,
@@ -2669,11 +2721,8 @@ pub const IO = extern struct {
     MetricsRenderIndices: i32,
     MetricsRenderWindows: i32,
     MetricsActiveWindows: i32,
-    MetricsActiveAllocations: i32,
     MouseDelta: Vec2,
-    KeyMap: [Key.COUNT]i32,
-    KeysDown: [Key.COUNT]bool,
-    NavInputs: [NavInput.COUNT]f32,
+    _UnusedPadding: ?*anyopaque,
     Ctx: ?*Context,
     MousePos: Vec2,
     MouseDown: [5]bool,
@@ -3028,13 +3077,13 @@ pub const StoragePair = extern struct {
     key: ID,
     value: extern union { val_i: i32, val_f: f32, val_p: ?*anyopaque },
 
-    /// init_Int(_key: ID, _val_i: i32) StoragePair
+    /// init_Int(_key: ID, _val: i32) StoragePair
     pub const init_Int = raw.ImGuiStoragePair_ImGuiStoragePair_Int;
 
-    /// init_Float(_key: ID, _val_f: f32) StoragePair
+    /// init_Float(_key: ID, _val: f32) StoragePair
     pub const init_Float = raw.ImGuiStoragePair_ImGuiStoragePair_Float;
 
-    /// init_Ptr(_key: ID, _val_p: ?*anyopaque) StoragePair
+    /// init_Ptr(_key: ID, _val: ?*anyopaque) StoragePair
     pub const init_Ptr = raw.ImGuiStoragePair_ImGuiStoragePair_Ptr;
 
     /// deinit(self: *StoragePair) void
@@ -3071,6 +3120,8 @@ pub const Style = extern struct {
     TabRounding: f32,
     TabBorderSize: f32,
     TabMinWidthForCloseButton: f32,
+    TabBarBorderSize: f32,
+    TableAngledHeadersAngle: f32,
     ColorButtonPosition: Dir,
     ButtonTextAlign: Vec2,
     SelectableTextAlign: Vec2,
@@ -3309,25 +3360,18 @@ pub inline fn Begin(name: ?[*:0]const u8) bool {
     return @This().BeginExt(name, null, .{});
 }
 
-pub inline fn BeginChild_StrExt(str_id: ?[*:0]const u8, size: Vec2, border: bool, flags: WindowFlags) bool {
-    return raw.igBeginChild_Str(str_id, size, border, flags.toInt());
+pub inline fn BeginChild_StrExt(str_id: ?[*:0]const u8, size: Vec2, child_flags: ChildFlags, window_flags: WindowFlags) bool {
+    return raw.igBeginChild_Str(str_id, size, child_flags.toInt(), window_flags.toInt());
 }
 pub inline fn BeginChild_Str(str_id: ?[*:0]const u8) bool {
-    return @This().BeginChild_StrExt(str_id, .{.x=0,.y=0}, false, .{});
+    return @This().BeginChild_StrExt(str_id, .{.x=0,.y=0}, .{}, .{});
 }
 
-pub inline fn BeginChild_IDExt(id: ID, size: Vec2, border: bool, flags: WindowFlags) bool {
-    return raw.igBeginChild_ID(id, size, border, flags.toInt());
+pub inline fn BeginChild_IDExt(id: ID, size: Vec2, child_flags: ChildFlags, window_flags: WindowFlags) bool {
+    return raw.igBeginChild_ID(id, size, child_flags.toInt(), window_flags.toInt());
 }
 pub inline fn BeginChild_ID(id: ID) bool {
-    return @This().BeginChild_IDExt(id, .{.x=0,.y=0}, false, .{});
-}
-
-pub inline fn BeginChildFrameExt(id: ID, size: Vec2, flags: WindowFlags) bool {
-    return raw.igBeginChildFrame(id, size, flags.toInt());
-}
-pub inline fn BeginChildFrame(id: ID, size: Vec2) bool {
-    return @This().BeginChildFrameExt(id, size, .{});
+    return @This().BeginChild_IDExt(id, .{.x=0,.y=0}, .{}, .{});
 }
 
 pub inline fn BeginComboExt(label: ?[*:0]const u8, preview_value: ?[*:0]const u8, flags: ComboFlags) bool {
@@ -3554,10 +3598,10 @@ pub inline fn Combo_Str(label: ?[*:0]const u8, current_item: ?*i32, items_separa
     return @This().Combo_StrExt(label, current_item, items_separated_by_zeros, -1);
 }
 
-/// Combo_FnBoolPtrExt(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?*fn (data: ?*anyopaque, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: i32, popup_max_height_in_items: i32) bool
-pub const Combo_FnBoolPtrExt = raw.igCombo_FnBoolPtr;
-pub inline fn Combo_FnBoolPtr(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?*fn (data: ?*anyopaque, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: i32) bool {
-    return @This().Combo_FnBoolPtrExt(label, current_item, items_getter, data, items_count, -1);
+/// Combo_FnStrPtrExt(label: ?[*:0]const u8, current_item: ?*i32, getter: ?*fn (user_data: ?*anyopaque, idx: i32) callconv(.C) ?[*:0]const u8, user_data: ?*anyopaque, items_count: i32, popup_max_height_in_items: i32) bool
+pub const Combo_FnStrPtrExt = raw.igCombo_FnStrPtr;
+pub inline fn Combo_FnStrPtr(label: ?[*:0]const u8, current_item: ?*i32, getter: ?*fn (user_data: ?*anyopaque, idx: i32) callconv(.C) ?[*:0]const u8, user_data: ?*anyopaque, items_count: i32) bool {
+    return @This().Combo_FnStrPtrExt(label, current_item, getter, user_data, items_count, -1);
 }
 
 /// CreateContextExt(shared_font_atlas: ?*FontAtlas) ?*Context
@@ -3687,9 +3731,6 @@ pub const End = raw.igEnd;
 
 /// EndChild() void
 pub const EndChild = raw.igEndChild;
-
-/// EndChildFrame() void
-pub const EndChildFrame = raw.igEndChildFrame;
 
 /// EndCombo() void
 pub const EndCombo = raw.igEndCombo;
@@ -4021,10 +4062,10 @@ pub inline fn Image(user_texture_id: TextureID, size: Vec2) void {
     return @This().ImageExt(user_texture_id, size, .{.x=0,.y=0}, .{.x=1,.y=1}, .{.x=1,.y=1,.z=1,.w=1}, .{.x=0,.y=0,.z=0,.w=0});
 }
 
-/// ImageButtonExt(str_id: ?[*:0]const u8, user_texture_id: TextureID, size: Vec2, uv0: Vec2, uv1: Vec2, bg_col: Vec4, tint_col: Vec4) bool
+/// ImageButtonExt(str_id: ?[*:0]const u8, user_texture_id: TextureID, image_size: Vec2, uv0: Vec2, uv1: Vec2, bg_col: Vec4, tint_col: Vec4) bool
 pub const ImageButtonExt = raw.igImageButton;
-pub inline fn ImageButton(str_id: ?[*:0]const u8, user_texture_id: TextureID, size: Vec2) bool {
-    return @This().ImageButtonExt(str_id, user_texture_id, size, .{.x=0,.y=0}, .{.x=1,.y=1}, .{.x=0,.y=0,.z=0,.w=0}, .{.x=1,.y=1,.z=1,.w=1});
+pub inline fn ImageButton(str_id: ?[*:0]const u8, user_texture_id: TextureID, image_size: Vec2) bool {
+    return @This().ImageButtonExt(str_id, user_texture_id, image_size, .{.x=0,.y=0}, .{.x=1,.y=1}, .{.x=0,.y=0,.z=0,.w=0}, .{.x=1,.y=1,.z=1,.w=1});
 }
 
 /// IndentExt(indent_w: f32) void
@@ -4187,6 +4228,9 @@ pub const IsItemToggledOpen = raw.igIsItemToggledOpen;
 /// IsItemVisible() bool
 pub const IsItemVisible = raw.igIsItemVisible;
 
+/// IsKeyChordPressed(key_chord: KeyChord) bool
+pub const IsKeyChordPressed = raw.igIsKeyChordPressed;
+
 /// IsKeyDown(key: Key) bool
 pub const IsKeyDown = raw.igIsKeyDown;
 
@@ -4277,10 +4321,10 @@ pub inline fn ListBox_Str_arr(label: ?[*:0]const u8, current_item: ?*i32, items:
     return @This().ListBox_Str_arrExt(label, current_item, items, items_count, -1);
 }
 
-/// ListBox_FnBoolPtrExt(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?*fn (data: ?*anyopaque, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: i32, height_in_items: i32) bool
-pub const ListBox_FnBoolPtrExt = raw.igListBox_FnBoolPtr;
-pub inline fn ListBox_FnBoolPtr(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?*fn (data: ?*anyopaque, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: i32) bool {
-    return @This().ListBox_FnBoolPtrExt(label, current_item, items_getter, data, items_count, -1);
+/// ListBox_FnStrPtrExt(label: ?[*:0]const u8, current_item: ?*i32, getter: ?*fn (user_data: ?*anyopaque, idx: i32) callconv(.C) ?[*:0]const u8, user_data: ?*anyopaque, items_count: i32, height_in_items: i32) bool
+pub const ListBox_FnStrPtrExt = raw.igListBox_FnStrPtr;
+pub inline fn ListBox_FnStrPtr(label: ?[*:0]const u8, current_item: ?*i32, getter: ?*fn (user_data: ?*anyopaque, idx: i32) callconv(.C) ?[*:0]const u8, user_data: ?*anyopaque, items_count: i32) bool {
+    return @This().ListBox_FnStrPtrExt(label, current_item, getter, user_data, items_count, -1);
 }
 
 /// LoadIniSettingsFromDisk(ini_filename: ?[*:0]const u8) void
@@ -4769,16 +4813,16 @@ pub inline fn ShowDemoWindow() void {
 /// ShowFontSelector(label: ?[*:0]const u8) void
 pub const ShowFontSelector = raw.igShowFontSelector;
 
+/// ShowIDStackToolWindowExt(p_open: ?*bool) void
+pub const ShowIDStackToolWindowExt = raw.igShowIDStackToolWindow;
+pub inline fn ShowIDStackToolWindow() void {
+    return @This().ShowIDStackToolWindowExt(null);
+}
+
 /// ShowMetricsWindowExt(p_open: ?*bool) void
 pub const ShowMetricsWindowExt = raw.igShowMetricsWindow;
 pub inline fn ShowMetricsWindow() void {
     return @This().ShowMetricsWindowExt(null);
-}
-
-/// ShowStackToolWindowExt(p_open: ?*bool) void
-pub const ShowStackToolWindowExt = raw.igShowStackToolWindow;
-pub inline fn ShowStackToolWindow() void {
-    return @This().ShowStackToolWindowExt(null);
 }
 
 /// ShowStyleEditorExt(ref: ?*Style) void
@@ -4900,6 +4944,9 @@ pub inline fn TabItemButtonExt(label: ?[*:0]const u8, flags: TabItemFlags) bool 
 pub inline fn TabItemButton(label: ?[*:0]const u8) bool {
     return @This().TabItemButtonExt(label, .{});
 }
+
+/// TableAngledHeadersRow() void
+pub const TableAngledHeadersRow = raw.igTableAngledHeadersRow;
 
 /// TableGetColumnCount() i32
 pub const TableGetColumnCount = raw.igTableGetColumnCount;
@@ -5091,6 +5138,8 @@ pub const raw = struct {
     pub extern fn ImDrawList_AddCircleFilled(self: *DrawList, center: Vec2, radius: f32, col: u32, num_segments: i32) callconv(.C) void;
     pub extern fn ImDrawList_AddConvexPolyFilled(self: *DrawList, points: ?[*]Vec2, num_points: i32, col: u32) callconv(.C) void;
     pub extern fn ImDrawList_AddDrawCmd(self: *DrawList) callconv(.C) void;
+    pub extern fn ImDrawList_AddEllipse(self: *DrawList, center: Vec2, radius_x: f32, radius_y: f32, col: u32, rot: f32, num_segments: i32, thickness: f32) callconv(.C) void;
+    pub extern fn ImDrawList_AddEllipseFilled(self: *DrawList, center: Vec2, radius_x: f32, radius_y: f32, col: u32, rot: f32, num_segments: i32) callconv(.C) void;
     pub extern fn ImDrawList_AddImage(self: *DrawList, user_texture_id: TextureID, p_min: Vec2, p_max: Vec2, uv_min: Vec2, uv_max: Vec2, col: u32) callconv(.C) void;
     pub extern fn ImDrawList_AddImageQuad(self: *DrawList, user_texture_id: TextureID, p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2, uv1: Vec2, uv2: Vec2, uv3: Vec2, uv4: Vec2, col: u32) callconv(.C) void;
     pub extern fn ImDrawList_AddImageRounded(self: *DrawList, user_texture_id: TextureID, p_min: Vec2, p_max: Vec2, uv_min: Vec2, uv_max: Vec2, col: u32, rounding: f32, flags: DrawFlagsInt) callconv(.C) void;
@@ -5119,6 +5168,7 @@ pub const raw = struct {
     pub extern fn ImDrawList_PathBezierCubicCurveTo(self: *DrawList, p2: Vec2, p3: Vec2, p4: Vec2, num_segments: i32) callconv(.C) void;
     pub extern fn ImDrawList_PathBezierQuadraticCurveTo(self: *DrawList, p2: Vec2, p3: Vec2, num_segments: i32) callconv(.C) void;
     pub extern fn ImDrawList_PathClear(self: *DrawList) callconv(.C) void;
+    pub extern fn ImDrawList_PathEllipticalArcTo(self: *DrawList, center: Vec2, radius_x: f32, radius_y: f32, rot: f32, a_min: f32, a_max: f32, num_segments: i32) callconv(.C) void;
     pub extern fn ImDrawList_PathFillConvex(self: *DrawList, col: u32) callconv(.C) void;
     pub extern fn ImDrawList_PathLineTo(self: *DrawList, pos: Vec2) callconv(.C) void;
     pub extern fn ImDrawList_PathLineToMergeDuplicate(self: *DrawList, pos: Vec2) callconv(.C) void;
@@ -5157,8 +5207,8 @@ pub const raw = struct {
     pub extern fn ImFontAtlas_AddFontDefault(self: *FontAtlas, font_cfg: ?*const FontConfig) callconv(.C) ?*Font;
     pub extern fn ImFontAtlas_AddFontFromFileTTF(self: *FontAtlas, filename: ?[*:0]const u8, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) callconv(.C) ?*Font;
     pub extern fn ImFontAtlas_AddFontFromMemoryCompressedBase85TTF(self: *FontAtlas, compressed_font_data_base85: ?[*]const u8, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) callconv(.C) ?*Font;
-    pub extern fn ImFontAtlas_AddFontFromMemoryCompressedTTF(self: *FontAtlas, compressed_font_data: ?*const anyopaque, compressed_font_size: i32, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) callconv(.C) ?*Font;
-    pub extern fn ImFontAtlas_AddFontFromMemoryTTF(self: *FontAtlas, font_data: ?*anyopaque, font_size: i32, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) callconv(.C) ?*Font;
+    pub extern fn ImFontAtlas_AddFontFromMemoryCompressedTTF(self: *FontAtlas, compressed_font_data: ?*const anyopaque, compressed_font_data_size: i32, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) callconv(.C) ?*Font;
+    pub extern fn ImFontAtlas_AddFontFromMemoryTTF(self: *FontAtlas, font_data: ?*anyopaque, font_data_size: i32, size_pixels: f32, font_cfg: ?*const FontConfig, glyph_ranges: ?[*:0]const Wchar) callconv(.C) ?*Font;
     pub extern fn ImFontAtlas_Build(self: *FontAtlas) callconv(.C) bool;
     pub extern fn ImFontAtlas_CalcCustomRectUV(self: *FontAtlas, rect: ?*const FontAtlasCustomRect, out_uv_min: ?*Vec2, out_uv_max: ?*Vec2) callconv(.C) void;
     pub extern fn ImFontAtlas_Clear(self: *FontAtlas) callconv(.C) void;
@@ -5258,9 +5308,9 @@ pub const raw = struct {
     pub extern fn ImGuiPlatformImeData_destroy(self: *PlatformImeData) callconv(.C) void;
     pub extern fn ImGuiPlatformMonitor_ImGuiPlatformMonitor() callconv(.C) *PlatformMonitor;
     pub extern fn ImGuiPlatformMonitor_destroy(self: *PlatformMonitor) callconv(.C) void;
-    pub extern fn ImGuiStoragePair_ImGuiStoragePair_Int(_key: ID, _val_i: i32) callconv(.C) *StoragePair;
-    pub extern fn ImGuiStoragePair_ImGuiStoragePair_Float(_key: ID, _val_f: f32) callconv(.C) *StoragePair;
-    pub extern fn ImGuiStoragePair_ImGuiStoragePair_Ptr(_key: ID, _val_p: ?*anyopaque) callconv(.C) *StoragePair;
+    pub extern fn ImGuiStoragePair_ImGuiStoragePair_Int(_key: ID, _val: i32) callconv(.C) *StoragePair;
+    pub extern fn ImGuiStoragePair_ImGuiStoragePair_Float(_key: ID, _val: f32) callconv(.C) *StoragePair;
+    pub extern fn ImGuiStoragePair_ImGuiStoragePair_Ptr(_key: ID, _val: ?*anyopaque) callconv(.C) *StoragePair;
     pub extern fn ImGuiStoragePair_destroy(self: *StoragePair) callconv(.C) void;
     pub extern fn ImGuiStorage_BuildSortByKey(self: *Storage) callconv(.C) void;
     pub extern fn ImGuiStorage_Clear(self: *Storage) callconv(.C) void;
@@ -5323,9 +5373,8 @@ pub const raw = struct {
     pub extern fn igAlignTextToFramePadding() callconv(.C) void;
     pub extern fn igArrowButton(str_id: ?[*:0]const u8, dir: Dir) callconv(.C) bool;
     pub extern fn igBegin(name: ?[*:0]const u8, p_open: ?*bool, flags: WindowFlagsInt) callconv(.C) bool;
-    pub extern fn igBeginChild_Str(str_id: ?[*:0]const u8, size: Vec2, border: bool, flags: WindowFlagsInt) callconv(.C) bool;
-    pub extern fn igBeginChild_ID(id: ID, size: Vec2, border: bool, flags: WindowFlagsInt) callconv(.C) bool;
-    pub extern fn igBeginChildFrame(id: ID, size: Vec2, flags: WindowFlagsInt) callconv(.C) bool;
+    pub extern fn igBeginChild_Str(str_id: ?[*:0]const u8, size: Vec2, child_flags: ChildFlagsInt, window_flags: WindowFlagsInt) callconv(.C) bool;
+    pub extern fn igBeginChild_ID(id: ID, size: Vec2, child_flags: ChildFlagsInt, window_flags: WindowFlagsInt) callconv(.C) bool;
     pub extern fn igBeginCombo(label: ?[*:0]const u8, preview_value: ?[*:0]const u8, flags: ComboFlagsInt) callconv(.C) bool;
     pub extern fn igBeginDisabled(disabled: bool) callconv(.C) void;
     pub extern fn igBeginDragDropSource(flags: DragDropFlagsInt) callconv(.C) bool;
@@ -5368,7 +5417,7 @@ pub const raw = struct {
     pub extern fn igColumns(count: i32, id: ?[*:0]const u8, border: bool) callconv(.C) void;
     pub extern fn igCombo_Str_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32, popup_max_height_in_items: i32) callconv(.C) bool;
     pub extern fn igCombo_Str(label: ?[*:0]const u8, current_item: ?*i32, items_separated_by_zeros: ?[*]const u8, popup_max_height_in_items: i32) callconv(.C) bool;
-    pub extern fn igCombo_FnBoolPtr(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?*fn (data: ?*anyopaque, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: i32, popup_max_height_in_items: i32) callconv(.C) bool;
+    pub extern fn igCombo_FnStrPtr(label: ?[*:0]const u8, current_item: ?*i32, getter: ?*fn (user_data: ?*anyopaque, idx: i32) callconv(.C) ?[*:0]const u8, user_data: ?*anyopaque, items_count: i32, popup_max_height_in_items: i32) callconv(.C) bool;
     pub extern fn igCreateContext(shared_font_atlas: ?*FontAtlas) callconv(.C) ?*Context;
     pub extern fn igDebugCheckVersionAndDataLayout(version_str: ?[*:0]const u8, sz_io: usize, sz_style: usize, sz_vec2: usize, sz_vec4: usize, sz_drawvert: usize, sz_drawidx: usize) callconv(.C) bool;
     pub extern fn igDebugTextEncoding(text: ?[*]const u8) callconv(.C) void;
@@ -5391,7 +5440,6 @@ pub const raw = struct {
     pub extern fn igDummy(size: Vec2) callconv(.C) void;
     pub extern fn igEnd() callconv(.C) void;
     pub extern fn igEndChild() callconv(.C) void;
-    pub extern fn igEndChildFrame() callconv(.C) void;
     pub extern fn igEndCombo() callconv(.C) void;
     pub extern fn igEndDisabled() callconv(.C) void;
     pub extern fn igEndDragDropSource() callconv(.C) void;
@@ -5481,7 +5529,7 @@ pub const raw = struct {
     pub extern fn igGetWindowViewport() callconv(.C) ?*Viewport;
     pub extern fn igGetWindowWidth() callconv(.C) f32;
     pub extern fn igImage(user_texture_id: TextureID, size: Vec2, uv0: Vec2, uv1: Vec2, tint_col: Vec4, border_col: Vec4) callconv(.C) void;
-    pub extern fn igImageButton(str_id: ?[*:0]const u8, user_texture_id: TextureID, size: Vec2, uv0: Vec2, uv1: Vec2, bg_col: Vec4, tint_col: Vec4) callconv(.C) bool;
+    pub extern fn igImageButton(str_id: ?[*:0]const u8, user_texture_id: TextureID, image_size: Vec2, uv0: Vec2, uv1: Vec2, bg_col: Vec4, tint_col: Vec4) callconv(.C) bool;
     pub extern fn igIndent(indent_w: f32) callconv(.C) void;
     pub extern fn igInputDouble(label: ?[*:0]const u8, v: *f64, step: f64, step_fast: f64, format: ?[*:0]const u8, flags: InputTextFlagsInt) callconv(.C) bool;
     pub extern fn igInputFloat(label: ?[*:0]const u8, v: *f32, step: f32, step_fast: f32, format: ?[*:0]const u8, flags: InputTextFlagsInt) callconv(.C) bool;
@@ -5512,6 +5560,7 @@ pub const raw = struct {
     pub extern fn igIsItemHovered(flags: HoveredFlagsInt) callconv(.C) bool;
     pub extern fn igIsItemToggledOpen() callconv(.C) bool;
     pub extern fn igIsItemVisible() callconv(.C) bool;
+    pub extern fn igIsKeyChordPressed(key_chord: KeyChord) callconv(.C) bool;
     pub extern fn igIsKeyDown(key: Key) callconv(.C) bool;
     pub extern fn igIsKeyPressed(key: Key, repeat: bool) callconv(.C) bool;
     pub extern fn igIsKeyReleased(key: Key) callconv(.C) bool;
@@ -5532,7 +5581,7 @@ pub const raw = struct {
     pub extern fn igIsWindowHovered(flags: HoveredFlagsInt) callconv(.C) bool;
     pub extern fn igLabelText(label: ?[*:0]const u8, fmt: ?[*:0]const u8, ...) callconv(.C) void;
     pub extern fn igListBox_Str_arr(label: ?[*:0]const u8, current_item: ?*i32, items: [*]const[*:0]const u8, items_count: i32, height_in_items: i32) callconv(.C) bool;
-    pub extern fn igListBox_FnBoolPtr(label: ?[*:0]const u8, current_item: ?*i32, items_getter: ?*fn (data: ?*anyopaque, idx: i32, out_text: *?[*:0]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: i32, height_in_items: i32) callconv(.C) bool;
+    pub extern fn igListBox_FnStrPtr(label: ?[*:0]const u8, current_item: ?*i32, getter: ?*fn (user_data: ?*anyopaque, idx: i32) callconv(.C) ?[*:0]const u8, user_data: ?*anyopaque, items_count: i32, height_in_items: i32) callconv(.C) bool;
     pub extern fn igLoadIniSettingsFromDisk(ini_filename: ?[*:0]const u8) callconv(.C) void;
     pub extern fn igLoadIniSettingsFromMemory(ini_data: ?[*]const u8, ini_size: usize) callconv(.C) void;
     pub extern fn igLogButtons() callconv(.C) void;
@@ -5644,8 +5693,8 @@ pub const raw = struct {
     pub extern fn igShowDebugLogWindow(p_open: ?*bool) callconv(.C) void;
     pub extern fn igShowDemoWindow(p_open: ?*bool) callconv(.C) void;
     pub extern fn igShowFontSelector(label: ?[*:0]const u8) callconv(.C) void;
+    pub extern fn igShowIDStackToolWindow(p_open: ?*bool) callconv(.C) void;
     pub extern fn igShowMetricsWindow(p_open: ?*bool) callconv(.C) void;
-    pub extern fn igShowStackToolWindow(p_open: ?*bool) callconv(.C) void;
     pub extern fn igShowStyleEditor(ref: ?*Style) callconv(.C) void;
     pub extern fn igShowStyleSelector(label: ?[*:0]const u8) callconv(.C) bool;
     pub extern fn igShowUserGuide() callconv(.C) void;
@@ -5666,6 +5715,7 @@ pub const raw = struct {
     pub extern fn igStyleColorsDark(dst: ?*Style) callconv(.C) void;
     pub extern fn igStyleColorsLight(dst: ?*Style) callconv(.C) void;
     pub extern fn igTabItemButton(label: ?[*:0]const u8, flags: TabItemFlagsInt) callconv(.C) bool;
+    pub extern fn igTableAngledHeadersRow() callconv(.C) void;
     pub extern fn igTableGetColumnCount() callconv(.C) i32;
     pub extern fn igTableGetColumnFlags(column_n: i32) callconv(.C) TableColumnFlagsInt;
     pub extern fn igTableGetColumnIndex() callconv(.C) i32;

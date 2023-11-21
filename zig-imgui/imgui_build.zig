@@ -20,7 +20,12 @@ pub fn get_module(b: *std.Build) *std.Build.Module
     });
 }
 
-pub fn link_cimgui_source_files(b: *std.Build, exe: *std.Build.Step.Compile, enable_opengl: bool) void {
+pub fn link_cimgui_source_files(
+    b: *std.Build,
+    exe: *std.Build.Step.Compile,
+    enable_freetype: bool,
+    enable_opengl: bool,
+) void {
     const base_path = b.pathJoin(&.{
         zig_imgui_path,
         "vendor",
@@ -33,25 +38,40 @@ pub fn link_cimgui_source_files(b: *std.Build, exe: *std.Build.Step.Compile, ena
         "-fvisibility=hidden",
     };
 
+    const imgui_sources: []const []const u8 = &.{
+        b.pathJoin(&.{ base_path, "cimgui.cpp" }),
+        b.pathJoin(&.{ base_path, "imgui", "imgui.cpp" }),
+        b.pathJoin(&.{ base_path, "imgui", "imgui_demo.cpp" }),
+        b.pathJoin(&.{ base_path, "imgui", "imgui_draw.cpp" }),
+        b.pathJoin(&.{ base_path, "imgui", "imgui_tables.cpp" }),
+        b.pathJoin(&.{ base_path, "imgui", "imgui_widgets.cpp" }),
+        b.pathJoin(&.{ base_path, "imgui", "imgui_widgets.cpp" }),
+    };
+
+    exe.addIncludePath(.{ .path = base_path });
     exe.addIncludePath(.{ .path = b.pathJoin(&.{ base_path, "imgui", }) });
-    exe.addCSourceFile
-    (
-        .{
-            .file = .{ .path = b.pathJoin(&.{ base_path, "cimgui_unity.cpp", }) },
+    for (imgui_sources) |file| {
+        exe.addCSourceFile(.{
+            .file = .{ .path = file },
             .flags = flags,
-        }
-    );
+        });
+    }
+
+    if (enable_freetype) {
+        exe.addIncludePath(.{ .path = b.pathJoin(&.{ base_path, "imgui", "misc", "freetype" }) });
+        exe.addCSourceFile(.{
+            .file = .{ .path = b.pathJoin(&.{ base_path, "imgui", "misc", "freetype", "imgui_freetype.cpp", }) },
+            .flags = flags,
+        });
+    }
 
     if (enable_opengl)
     {
         exe.addIncludePath(.{ .path = b.pathJoin(&.{ base_path, "imgui", "opengl" }) });
-        exe.addCSourceFile
-        (
-            .{
-                .file = .{ .path = b.pathJoin(&.{ base_path, "imgui", "opengl", "imgui_impl_opengl3.cpp", }) },
-                .flags = flags,
-            }
-        );
+        exe.addCSourceFile(.{
+            .file = .{ .path = b.pathJoin(&.{ base_path, "imgui", "opengl", "imgui_impl_opengl3.cpp", }) },
+            .flags = flags,
+        });
     }
 }
 
@@ -127,32 +147,27 @@ pub fn get_artifact(
     enable_lunasvg: bool,
     enable_opengl: bool,
     target: std.zig.CrossTarget,
-    optimize: std.builtin.OptimizeMode
+    optimize: std.builtin.OptimizeMode,
 ) *std.Build.Step.Compile {
-    var cimgui = b.addStaticLibrary
-    (
-        .{
-            .name = zig_imgui_lib_name,
-            .target = target,
-            .optimize = optimize,
-        }
-    );
+    var cimgui = b.addStaticLibrary(.{
+        .name = zig_imgui_lib_name,
+        .target = target,
+        .optimize = optimize,
+    });
 
     cimgui.linkLibCpp();
-    if (freetype_dep != null)
-    {
+    if (freetype_dep != null) {
         cimgui.defineCMacro("IMGUI_ENABLE_FREETYPE", "1");
         cimgui.defineCMacro("CIMGUI_FREETYPE", "1");
         cimgui.linkLibrary(freetype_dep.?.artifact("freetype"));
     }
 
-    if (enable_lunasvg)
-    {
+    if (enable_lunasvg) {
         cimgui.defineCMacro("IMGUI_ENABLE_FREETYPE_LUNASVG", "1");
         link_lunasvg_source_files(b, cimgui);
     }
 
-    link_cimgui_source_files(b, cimgui, enable_opengl);
+    link_cimgui_source_files(b, cimgui, freetype_dep != null, enable_opengl);
     return cimgui;
 }
 
@@ -164,18 +179,16 @@ pub fn add_test_step(
     target: std.zig.CrossTarget,
     optimize: std.builtin.OptimizeMode,
 ) void {
-    const test_exe = b.addTest(
-        .{
-            .root_source_file = .{
-                .path = b.pathJoin(&.{
-                    zig_imgui_path,
-                    "tests.zig",
-                }),
-            },
-            .target = target,
-            .optimize = optimize,
-        }
-    );
+    const test_exe = b.addTest(.{
+        .root_source_file = .{
+            .path = b.pathJoin(&.{
+                zig_imgui_path,
+                "tests.zig",
+            }),
+        },
+        .target = target,
+        .optimize = optimize,
+    });
 
     test_exe.linkLibrary(lib);
     test_exe.addModule(zig_imgui_mod_name, module);

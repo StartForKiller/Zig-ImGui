@@ -186,6 +186,7 @@ Rules = {
             ([Contains('begin')], '?[*]'),
             ([Contains('end')], '?[*]'),
             ([EndsWith('data')], '?[*]'),
+            ([EndsWith('FnStrPtr'), 'getter', '', 'return'], '?[*:0]'),
 
             (['ImGuiTextRange', Always()], '?[*]'),
             (['ImGuiTextRange_ImGuiTextRange_Str', Always()], '?[*]'),
@@ -244,7 +245,6 @@ Rules = {
     ],
     2: [
         (Always(), [
-            (['items_getter', '', 'out_text'], '*?[*:0]'),
             ([StartsWith('ImFontAtlas_GetTexData'), 'out_pixels'], '*?[*]'),
             (['ImFont_CalcTextSizeA', 'remaining'], '?*?[*:0]'),
         ]),

@@ -10,7 +10,7 @@ const imgui = @This();
 
 pub const DrawCallback_ResetRenderState: DrawCallback = null;
 
-pub const VERSION = "1.89.9";
+pub const VERSION = "1.90.0";
 pub fn CHECKVERSION() void {
     if (builtin.mode != .ReleaseFast) {
         assert(raw.igDebugCheckVersionAndDataLayout(VERSION, @sizeOf(IO), @sizeOf(Style), @sizeOf(Vec2), @sizeOf(Vec4), @sizeOf(DrawVert), @sizeOf(DrawIdx)));
@@ -208,7 +208,9 @@ pub fn Vector(comptime T: type) type {
         }
         pub fn reserve(self: *@This(), new_capacity: u32) void {
             if (new_capacity <= self.Capacity) return;
-            const new_data: ?[*]T = @ptrCast(@as(T, @alignCast(raw.igMemAlloc(new_capacity * @sizeOf(T)))));
+            const new_data: ?[*]T = @ptrCast(
+                @alignCast(@as(?[*]u8, @ptrCast(raw.igMemAlloc(new_capacity * @sizeOf(T)))))
+            );
             if (self.Data) |sd| {
                 if (self.Size != 0) {
                     @memcpy(
@@ -224,7 +226,9 @@ pub fn Vector(comptime T: type) type {
         pub fn reserve_discard(self: *@This(), new_capacity: u32) void {
             if (new_capacity <= self.Capacity) return;
             if (self.Data) |sd| raw.igMemFree(@ptrCast(sd));
-            self.Data = @ptrCast(@as(T, @alignCast(raw.igMemAlloc(new_capacity * @sizeOf(T)))));
+            self.Data = @ptrCast(
+                @alignCast(@as(?[*]u8, @ptrCast(raw.igMemAlloc(new_capacity * @sizeOf(T)))))
+            );
             self.Capacity = new_capacity;
         }
 
@@ -445,6 +449,8 @@ pub const allocator: std.mem.Allocator = .{
     .ptr = undefined,
     .vtable = &allocator_vtable,
 };
+
+pub const TextureID = enum(u64) { null_handle = 0, _ };
 
 // ---------------- Everything above here comes from template.zig ------------------
 // ---------------- Everything below here is generated -----------------------------

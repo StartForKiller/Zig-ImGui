@@ -49,7 +49,7 @@ fn compileEverything(comptime Outer: type, comptime skip_items: []const []const 
 test "Compile everything" {
     // This forces ig.FontAtlas to be analyzed before ig.Font,
     // which avoids a false positive circular dependency bug in stage 1.
-    var atlas: ig.FontAtlas = undefined;
+    const atlas: ig.FontAtlas = undefined;
     _ = atlas;
 
     @setEvalBranchQuota(10000);

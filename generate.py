@@ -25,6 +25,7 @@ from pointer_rules import *
 typeConversions = {
     'int': 'i32',
     'unsigned int': 'u32',
+    'unsigned long long': 'u64',
     'short': 'i16',
     'unsigned short': 'u16',
     'float': 'f32',
@@ -695,6 +696,7 @@ if __name__ == '__main__':
     del data.structures['ImVec2']
     del data.structures['ImVec4']
     del data.structures['ImColor']
+    del data.typedefs['ImTextureID']
 
     makedirs(OUTPUT_DIR, exist_ok=True)
     with open(OUTPUT_DIR+'/'+OUTPUT_FILE, "w", newline='\n') as f:
