@@ -1,10 +1,5 @@
 const std = @import("std");
-const builtin = @import("builtin");
 
-const imgui_build = @import("zig-imgui/imgui_build.zig");
-
-
-const glslc_command = if (builtin.os.tag == .windows) "tools/win/glslc.exe" else "glslc";
 
 pub fn build(b: *std.Build) void {
     // Standard target options allows the person running `zig build` to choose
@@ -30,101 +25,154 @@ pub fn build(b: *std.Build) void {
         "Enable building ImGui's OpenGL loader backend."
     ) orelse false;
 
-    const freetype_dep =
+    const freetype_dep: ?*std.Build.Dependency =
         if (enable_freetype)
             b.dependency("freetype", .{ .target = target, .optimize = optimize })
         else
             null;
 
-    const module = imgui_build.get_module(b);
-    const lib = imgui_build.get_artifact(b, freetype_dep, enable_lunasvg, enable_opengl, target, optimize);
-    b.installArtifact(lib);
+    const imgui_dep = b.dependency("imgui", .{ .target = target, .optimize = optimize });
 
-    imgui_build.add_test_step(b, "test", module, lib, target, optimize);
+    const lunasvg_dep: ?*std.Build.Dependency =
+        if (enable_freetype)
+            b.dependency("lunasvg", .{ .target = target, .optimize = optimize })
+        else
+            null;
 
-    // {
-    //     const exe = example_exe(b, "example_glfw_vulkan", module, lib, target, optimize);
-    //     link_glfw(exe, target);
-    //     link_vulkan(exe, target);
-
-    //     const run_cmd = b.addRunArtifact(exe);
-    //     run_cmd.step.dependOn(b.getInstallStep());
-    //     if (b.args) |args| {
-    //         run_cmd.addArgs(args);
-    //     }
-
-    //     const run_step = b.step("runvk", "Run the app with Vulkan");
-    //     run_step.dependOn(&run_cmd.step);
-    // }
-    // {
-    //     const exe = example_exe(b, "example_glfw_opengl3", module, lib, target, optimize);
-    //     link_glfw(exe, target);
-    //     link_glad(exe);
-
-    //     const run_cmd = b.addRunArtifact(exe);
-    //     run_cmd.step.dependOn(b.getInstallStep());
-    //     if (b.args) |args| {
-    //         run_cmd.addArgs(args);
-    //     }
-
-    //     const run_step = b.step("rungl", "Run the app with OpenGL");
-    //     run_step.dependOn(&run_cmd.step);
-    // }
-}
-
-fn example_exe(
-    b: *std.Build,
-    comptime name: []const u8,
-    module: *std.Build.Module,
-    lib: *std.Build.Step.Compile,
-    target: std.zig.CrossTarget,
-    optimize: std.builtin.OptimizeMode,
-) *std.Build.Step.Compile {
-    const exe = b.addExecutable
-    (
-        .{
-            .name = name,
-            .root_source_file = .{ .path = "examples/" ++ name ++ ".zig" },
-            .target = target,
-            .optimize = optimize,
-        }
-    );
-
-    exe.linkLibrary(lib);
-    exe.addModule(imgui_build.zig_imgui_mod_name, module);
-
-    b.installArtifact(exe);
-    return exe;
-}
-
-fn link_glad(exe: *std.Build.Step.Compile) void {
-    exe.addIncludePath(.{ .path = "examples/include/c_include" });
-    exe.addCSourceFile(.{
-        .file = .{ .path = "examples/c_src/glad.c" },
-        .flags = &[_][]const u8{ "-std=c99" }
+    const cimgui = b.addStaticLibrary(.{
+        .name = "cimgui",
+        .target = target,
+        .optimize = optimize,
     });
-}
+    cimgui.root_module.link_libcpp = true;
 
-fn link_glfw(exe: *std.Build.Step.Compile, target: std.zig.CrossTarget) void {
-    if (target.isWindows()) {
-        exe.addObjectFile(.{
-            .path =
-                if (target.getAbi() == .msvc)
-                    "examples/lib/win/glfw3.lib"
-                else
-                    "examples/lib/win/libglfw3.a"
+    if (enable_freetype) {
+        cimgui.root_module.addCMacro("IMGUI_ENABLE_FREETYPE", "1");
+        cimgui.root_module.addCMacro("CIMGUI_FREETYPE", "1");
+        cimgui.linkLibrary(freetype_dep.?.artifact("freetype"));
+    }
+
+    if (enable_lunasvg) {
+        cimgui.root_module.addCMacro("IMGUI_ENABLE_FREETYPE_LUNASVG", "1");
+
+        const plutovg_sources: []const std.Build.LazyPath = &.{
+            lunasvg_dep.?.path("3rdparty/plutovg/plutovg.c"),
+            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-paint.c"),
+            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-geometry.c"),
+            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-blend.c"),
+            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-rle.c"),
+            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-dash.c"),
+            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-ft-raster.c"),
+            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-ft-stroker.c"),
+            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-ft-math.c"),
+        };
+        cimgui.addIncludePath(lunasvg_dep.?.path("3rdparty/plutovg/"));
+        for (plutovg_sources) |file| {
+            cimgui.addCSourceFile(.{
+                .file = file,
+                .flags = &.{
+                    "-std=gnu11",
+                    "-fno-sanitize=undefined",
+                    "-fvisibility=hidden",
+                },
+            });
+        }
+
+        const lunasvg_sources: []const std.Build.LazyPath = &.{
+            lunasvg_dep.?.path("source/lunasvg.cpp"),
+            lunasvg_dep.?.path("source/element.cpp"),
+            lunasvg_dep.?.path("source/property.cpp"),
+            lunasvg_dep.?.path("source/parser.cpp"),
+            lunasvg_dep.?.path("source/layoutcontext.cpp"),
+            lunasvg_dep.?.path("source/canvas.cpp"),
+            lunasvg_dep.?.path("source/clippathelement.cpp"),
+            lunasvg_dep.?.path("source/defselement.cpp"),
+            lunasvg_dep.?.path("source/gelement.cpp"),
+            lunasvg_dep.?.path("source/geometryelement.cpp"),
+            lunasvg_dep.?.path("source/graphicselement.cpp"),
+            lunasvg_dep.?.path("source/maskelement.cpp"),
+            lunasvg_dep.?.path("source/markerelement.cpp"),
+            lunasvg_dep.?.path("source/paintelement.cpp"),
+            lunasvg_dep.?.path("source/stopelement.cpp"),
+            lunasvg_dep.?.path("source/styledelement.cpp"),
+            lunasvg_dep.?.path("source/styleelement.cpp"),
+            lunasvg_dep.?.path("source/svgelement.cpp"),
+            lunasvg_dep.?.path("source/symbolelement.cpp"),
+            lunasvg_dep.?.path("source/useelement.cpp"),
+        };
+        cimgui.addIncludePath(lunasvg_dep.?.path("include/"));
+        for (lunasvg_sources) |file| {
+            cimgui.addCSourceFile(.{
+                .file = file,
+                .flags = &.{
+                    "-std=gnu++11",
+                    "-fno-sanitize=undefined",
+                    "-fvisibility=hidden",
+                },
+            });
+        }
+    }
+
+    const imgui_flags: []const []const u8 = &.{
+        "-std=c++11",
+        "-fno-sanitize=undefined",
+        "-fvisibility=hidden",
+    };
+
+    const imgui_sources: []const std.Build.LazyPath = &.{
+        .{ .path = "zig-imgui/config.cpp" },
+        .{ .path = "zig-imgui/cimgui.cpp" },
+        imgui_dep.path("imgui.cpp"),
+        imgui_dep.path("imgui_demo.cpp"),
+        imgui_dep.path("imgui_draw.cpp"),
+        imgui_dep.path("imgui_tables.cpp"),
+        imgui_dep.path("imgui_widgets.cpp"),
+    };
+
+    cimgui.root_module.addCMacro("IMGUI_IMPL_API", "extern \"C\"");
+    cimgui.root_module.addCMacro("IMGUI_DISABLE_OBSOLETE_FUNCTIONS", "1");
+    cimgui.root_module.addCMacro("IMGUI_DISABLE_OBSOLETE_KEYIO", "1");
+    cimgui.root_module.addCMacro("IMGUI_USE_WCHAR32", "1");
+    cimgui.addIncludePath(.{ .path = "zig-imgui/" });
+    cimgui.addIncludePath(imgui_dep.path("."));
+    for (imgui_sources) |file| {
+        cimgui.addCSourceFile(.{
+            .file = file,
+            .flags = imgui_flags,
         });
-        exe.linkSystemLibrary("gdi32");
-        exe.linkSystemLibrary("shell32");
-    } else {
-        exe.linkSystemLibrary("glfw");
     }
-}
 
-fn link_vulkan(exe: *std.Build.Step.Compile, target: std.zig.CrossTarget) void {
-    if (target.isWindows()) {
-        exe.addObjectFile(.{ .path = "examples/lib/win/vulkan-1.lib" });
-    } else {
-        exe.linkSystemLibrary("vulkan");
+    if (enable_freetype) {
+        cimgui.addIncludePath(imgui_dep.path("misc/freetype"));
+        cimgui.addCSourceFile(.{
+            .file = imgui_dep.path("misc/freetype/imgui_freetype.cpp"),
+            .flags = imgui_flags,
+        });
     }
+
+    if (enable_opengl)
+    {
+        cimgui.addIncludePath(imgui_dep.path("backends/"));
+        cimgui.addCSourceFile(.{
+            .file = imgui_dep.path("backends/imgui_impl_opengl3.cpp"),
+            .flags = imgui_flags,
+        });
+    }
+
+    const zig_imgui = b.addModule("Zig-ImGui", .{
+        .root_source_file = .{ .path = "zig-imgui/imgui.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    zig_imgui.linkLibrary(cimgui);
+
+    const test_exe = b.addTest(.{
+        .root_source_file = .{ .path = "zig-imgui/tests.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    test_exe.root_module.addImport("Zig-ImGui", zig_imgui);
+
+    const test_step = b.step("test", "Run zig-imgui tests");
+    test_step.dependOn(&test_exe.step);
 }

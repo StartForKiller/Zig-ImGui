@@ -1,14 +1,18 @@
 .{
     .name = "Zig-ImGui",
-    .version = "0.12.589",
+    .version = "1.90.0",
     .dependencies = .{
         .freetype = .{
-            .url = "https://gitlab.com/joshua.software.dev/freetype-zigmasterfix/-/archive/ee643adc566f3ed6a08defe6f93a9357569669b0/freetype-zigmasterfix-ee643adc566f3ed6a08defe6f93a9357569669b0.tar.gz",
-            .hash = "1220622bbd4069b1c3868f6b5551165382edb3c817d07da7ee1e17d19a262e776d15",
+            .hash = "12202a6c3674d7a3feda2fe45c1c9fdef81f351cc2f0235b87788ad3e5ce15beda36",
+            .url = "https://gitlab.com/joshua.software.dev/freetype-zigmasterfix/-/archive/d025bc5f31ed842751ae3850614e8e57cc1354b6/freetype-zigmasterfix-d025bc5f31ed842751ae3850614e8e57cc1354b6.tar.gz",
         },
-        .brotli = .{
-            .url = "https://gitlab.com/joshua.software.dev/brotli-zigmasterfix/-/archive/707d7a032e761a86066cda4549c6e07679142648/brotli-zigmasterfix-707d7a032e761a86066cda4549c6e07679142648.tar.gz",
-            .hash = "12209a9030e683f5947b18f6a8dbe8ef36d94c2e09768430ace5a194d674e51226e3",
+        .imgui = .{
+            .hash = "12208cdd9ecdd631cac23b4674c77cce372c479d197138c9bfd83e1aaaaf76fe20bf",
+            .url = "https://github.com/ocornut/imgui/archive/ce0d0ac8298ce164b5d862577e8b087d92f6e90e.tar.gz",
+        },
+        .lunasvg = .{
+            .hash = "122079db91cf4c0ed8d21659678c4299f55dadbb6a89020f25a49468485b19e2fe6b",
+            .url = "https://github.com/sammycage/lunasvg/archive/610b8bf5148a27489b4e3344b4f5617b81be38c7.tar.gz",
         },
     },
     .paths = .{

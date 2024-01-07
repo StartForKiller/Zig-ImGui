@@ -4,7 +4,7 @@ Zig-ImGui uses [cimgui](https://github.com/cimgui/cimgui) to generate [Zig](http
 
 It is currently up to date with [Dear ImGui v1.90](https://github.com/ocornut/imgui/releases/tag/v1.90).
 
-At the time of writing, Zig-ImGui supports zig `0.11.0` and `0.12.0-dev.1664+8ca4a5240`
+At the time of writing, Zig-ImGui supports zig `0.12.0-dev.2059+42389cb9c`
 
 ## Using the pre-generated bindings
 
