@@ -57,10 +57,20 @@ Zig-ImGui strives to be easy to use.  To use the pre-generated bindings, do the 
         // Enable building ImGui's OpenGL loader backend
         .enable_opengl = false // if unspecified, the default is false
     });
+
+    // exes and shared libraries are also fine
+    const my_static_lib = b.addStaticLibrary(.{
+        .name = "my_static_lib",
+        .root_source_file = .{ .path = "src/main.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
+    my_static_lib.root_module.addImport("Zig-ImGui", ZigImGui_dep.module("Zig-ImGui"));
     ```
 - In your project, use `@import("Zig-ImGui")` to obtain the bindings.
-- For more detailed documentation, see the [official ImGui documentation](https://github.com/ocornut/imgui/tree/v1.89.9/docs).
-- For an example of a real project using these bindings, see [joshua-software-dev/Lurk](https://gitlab.com/joshua.software.dev/Lurk).
+- For more detailed documentation, see the [official ImGui documentation](https://github.com/ocornut/imgui/tree/v1.90/docs).
+- For an example of a real project using these bindings, see [joshua-software-dev/AthenaOverlay](https://codeberg.org/joshua-software-dev/AthenaOverlay).
 
 ## Binding style
 
