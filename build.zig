@@ -120,7 +120,6 @@ pub fn build(b: *std.Build) void {
     };
 
     const imgui_sources: []const std.Build.LazyPath = &.{
-        .{ .path = "zig-imgui/config.cpp" },
         .{ .path = "zig-imgui/cimgui.cpp" },
         imgui_dep.path("imgui.cpp"),
         imgui_dep.path("imgui_demo.cpp"),
@@ -129,10 +128,11 @@ pub fn build(b: *std.Build) void {
         imgui_dep.path("imgui_widgets.cpp"),
     };
 
-    cimgui.root_module.addCMacro("IMGUI_IMPL_API", "extern \"C\"");
     cimgui.root_module.addCMacro("IMGUI_DISABLE_OBSOLETE_FUNCTIONS", "1");
     cimgui.root_module.addCMacro("IMGUI_DISABLE_OBSOLETE_KEYIO", "1");
+    cimgui.root_module.addCMacro("IMGUI_IMPL_API", "extern \"C\"");
     cimgui.root_module.addCMacro("IMGUI_USE_WCHAR32", "1");
+    cimgui.root_module.addCMacro("ImTextureID", "unsigned long long");
     cimgui.addIncludePath(.{ .path = "zig-imgui/" });
     cimgui.addIncludePath(imgui_dep.path("."));
     for (imgui_sources) |file| {
@@ -150,21 +150,36 @@ pub fn build(b: *std.Build) void {
         });
     }
 
-    if (enable_opengl)
-    {
-        cimgui.addIncludePath(imgui_dep.path("backends/"));
-        cimgui.addCSourceFile(.{
-            .file = imgui_dep.path("backends/imgui_impl_opengl3.cpp"),
-            .flags = imgui_flags,
-        });
-    }
-
     const zig_imgui = b.addModule("Zig-ImGui", .{
         .root_source_file = .{ .path = "zig-imgui/imgui.zig" },
         .target = target,
         .optimize = optimize,
     });
     zig_imgui.linkLibrary(cimgui);
+
+    if (enable_opengl)
+    {
+        const imgui_opengl = b.addStaticLibrary(.{
+            .name = "imgui_opengl",
+            .target = target,
+            .optimize = optimize,
+        });
+        imgui_opengl.root_module.link_libcpp = true;
+        imgui_opengl.linkLibrary(cimgui);
+        imgui_opengl.root_module.addCMacro("IMGUI_DISABLE_OBSOLETE_FUNCTIONS", "1");
+        imgui_opengl.root_module.addCMacro("IMGUI_DISABLE_OBSOLETE_KEYIO", "1");
+        imgui_opengl.root_module.addCMacro("IMGUI_IMPL_API", "extern \"C\"");
+        imgui_opengl.root_module.addCMacro("IMGUI_USE_WCHAR32", "1");
+        imgui_opengl.root_module.addCMacro("ImTextureID", "unsigned long long");
+        imgui_opengl.addIncludePath(imgui_dep.path("."));
+        imgui_opengl.addIncludePath(imgui_dep.path("backends/"));
+        imgui_opengl.addCSourceFile(.{
+            .file = imgui_dep.path("backends/imgui_impl_opengl3.cpp"),
+            .flags = imgui_flags,
+        });
+
+        zig_imgui.linkLibrary(imgui_opengl);
+    }
 
     const test_exe = b.addTest(.{
         .root_source_file = .{ .path = "zig-imgui/tests.zig" },
