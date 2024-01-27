@@ -52,70 +52,8 @@ pub fn build(b: *std.Build) void {
         cimgui.linkLibrary(freetype_dep.?.artifact("freetype"));
     }
 
-    if (enable_lunasvg) {
-        cimgui.root_module.addCMacro("IMGUI_ENABLE_FREETYPE_LUNASVG", "1");
-
-        const plutovg_sources: []const std.Build.LazyPath = &.{
-            lunasvg_dep.?.path("3rdparty/plutovg/plutovg.c"),
-            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-paint.c"),
-            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-geometry.c"),
-            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-blend.c"),
-            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-rle.c"),
-            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-dash.c"),
-            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-ft-raster.c"),
-            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-ft-stroker.c"),
-            lunasvg_dep.?.path("3rdparty/plutovg/plutovg-ft-math.c"),
-        };
-        cimgui.addIncludePath(lunasvg_dep.?.path("3rdparty/plutovg/"));
-        for (plutovg_sources) |file| {
-            cimgui.addCSourceFile(.{
-                .file = file,
-                .flags = &.{
-                    "-std=gnu11",
-                    "-fno-sanitize=undefined",
-                    "-fvisibility=hidden",
-                },
-            });
-        }
-
-        const lunasvg_sources: []const std.Build.LazyPath = &.{
-            lunasvg_dep.?.path("source/lunasvg.cpp"),
-            lunasvg_dep.?.path("source/element.cpp"),
-            lunasvg_dep.?.path("source/property.cpp"),
-            lunasvg_dep.?.path("source/parser.cpp"),
-            lunasvg_dep.?.path("source/layoutcontext.cpp"),
-            lunasvg_dep.?.path("source/canvas.cpp"),
-            lunasvg_dep.?.path("source/clippathelement.cpp"),
-            lunasvg_dep.?.path("source/defselement.cpp"),
-            lunasvg_dep.?.path("source/gelement.cpp"),
-            lunasvg_dep.?.path("source/geometryelement.cpp"),
-            lunasvg_dep.?.path("source/graphicselement.cpp"),
-            lunasvg_dep.?.path("source/maskelement.cpp"),
-            lunasvg_dep.?.path("source/markerelement.cpp"),
-            lunasvg_dep.?.path("source/paintelement.cpp"),
-            lunasvg_dep.?.path("source/stopelement.cpp"),
-            lunasvg_dep.?.path("source/styledelement.cpp"),
-            lunasvg_dep.?.path("source/styleelement.cpp"),
-            lunasvg_dep.?.path("source/svgelement.cpp"),
-            lunasvg_dep.?.path("source/symbolelement.cpp"),
-            lunasvg_dep.?.path("source/useelement.cpp"),
-        };
-        cimgui.addIncludePath(lunasvg_dep.?.path("include/"));
-        for (lunasvg_sources) |file| {
-            cimgui.addCSourceFile(.{
-                .file = file,
-                .flags = &.{
-                    "-std=gnu++11",
-                    "-fno-sanitize=undefined",
-                    "-fvisibility=hidden",
-                },
-            });
-        }
-    }
-
     const imgui_flags: []const []const u8 = &.{
         "-std=c++11",
-        "-fno-sanitize=undefined",
         "-fvisibility=hidden",
     };
 
@@ -143,9 +81,73 @@ pub fn build(b: *std.Build) void {
     }
 
     if (enable_freetype) {
+        if (enable_lunasvg) {
+            cimgui.root_module.addCMacro("IMGUI_ENABLE_FREETYPE_LUNASVG", "1");
+
+            const plutovg_sources: []const std.Build.LazyPath = &.{
+                lunasvg_dep.?.path("3rdparty/plutovg/plutovg.c"),
+                lunasvg_dep.?.path("3rdparty/plutovg/plutovg-paint.c"),
+                lunasvg_dep.?.path("3rdparty/plutovg/plutovg-geometry.c"),
+                lunasvg_dep.?.path("3rdparty/plutovg/plutovg-blend.c"),
+                lunasvg_dep.?.path("3rdparty/plutovg/plutovg-rle.c"),
+                lunasvg_dep.?.path("3rdparty/plutovg/plutovg-dash.c"),
+                lunasvg_dep.?.path("3rdparty/plutovg/plutovg-ft-raster.c"),
+                lunasvg_dep.?.path("3rdparty/plutovg/plutovg-ft-stroker.c"),
+                lunasvg_dep.?.path("3rdparty/plutovg/plutovg-ft-math.c"),
+            };
+            cimgui.addIncludePath(lunasvg_dep.?.path("3rdparty/plutovg/"));
+            for (plutovg_sources) |file| {
+                cimgui.addCSourceFile(.{
+                    .file = file,
+                    .flags = &.{
+                        "-std=gnu11",
+                        "-fvisibility=hidden",
+                    },
+                });
+            }
+
+            const lunasvg_sources: []const std.Build.LazyPath = &.{
+                lunasvg_dep.?.path("source/lunasvg.cpp"),
+                lunasvg_dep.?.path("source/element.cpp"),
+                lunasvg_dep.?.path("source/property.cpp"),
+                lunasvg_dep.?.path("source/parser.cpp"),
+                lunasvg_dep.?.path("source/layoutcontext.cpp"),
+                lunasvg_dep.?.path("source/canvas.cpp"),
+                lunasvg_dep.?.path("source/clippathelement.cpp"),
+                lunasvg_dep.?.path("source/defselement.cpp"),
+                lunasvg_dep.?.path("source/gelement.cpp"),
+                lunasvg_dep.?.path("source/geometryelement.cpp"),
+                lunasvg_dep.?.path("source/graphicselement.cpp"),
+                lunasvg_dep.?.path("source/maskelement.cpp"),
+                lunasvg_dep.?.path("source/markerelement.cpp"),
+                lunasvg_dep.?.path("source/paintelement.cpp"),
+                lunasvg_dep.?.path("source/stopelement.cpp"),
+                lunasvg_dep.?.path("source/styledelement.cpp"),
+                lunasvg_dep.?.path("source/styleelement.cpp"),
+                lunasvg_dep.?.path("source/svgelement.cpp"),
+                lunasvg_dep.?.path("source/symbolelement.cpp"),
+                lunasvg_dep.?.path("source/useelement.cpp"),
+            };
+            cimgui.addIncludePath(lunasvg_dep.?.path("include/"));
+            for (lunasvg_sources) |file| {
+                cimgui.addCSourceFile(.{
+                    .file = file,
+                    .flags = &.{
+                        "-std=gnu++11",
+                        "-fvisibility=hidden",
+                    },
+                });
+            }
+        }
+
+        // freetype_flags.append("-fno-sanitize-trap=undefined") catch @panic("oom");
+        // freetype_flags.append("-fno-sanitize-recover=undefined") catch @panic("oom");
+        // cimgui.addLibraryPath(.{ .path = "/usr/lib/" });
+        // cimgui.linkSystemLibrary("ubsan");
+
         cimgui.addIncludePath(imgui_dep.path("misc/freetype"));
         cimgui.addCSourceFile(.{
-            .file = imgui_dep.path("misc/freetype/imgui_freetype.cpp"),
+            .file = .{ .path = "zig-imgui/imgui_freetype.cpp" },
             .flags = imgui_flags,
         });
     }
@@ -157,8 +159,7 @@ pub fn build(b: *std.Build) void {
     });
     zig_imgui.linkLibrary(cimgui);
 
-    if (enable_opengl)
-    {
+    if (enable_opengl) {
         const imgui_opengl = b.addStaticLibrary(.{
             .name = "imgui_opengl",
             .target = target,
