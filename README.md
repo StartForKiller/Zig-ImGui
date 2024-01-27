@@ -94,7 +94,7 @@ ImGui contains a number of [BACKENDS](https://github.com/ocornut/imgui/blob/mast
 ```zig
 // in your build.zig
 
-const std = @import("std);
+const std = @import("std");
 
 const ZigImGui_build_script = @import("ZigImGui");
 
