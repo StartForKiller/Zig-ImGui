@@ -19,15 +19,32 @@ Zig-ImGui strives to be easy to use.  To use the pre-generated bindings, do the 
         .{
             .ZigImGui =
             .{
-                // https://multiformats.io/multihash/#sha2-256-256-bits-aka-sha256
-                // "1220" + sha256sum of folder contents
-                // run zig build with a url and fake hash to cause zig to generate
-                // an error message with the expected hash, ex:
-                // .url = "https://whatever.com/file.tar.gz"
-                // .hash = "12200000000000000000000000000000000000000000000000000000000000000000"
-                .hash = "1220ccb76517a0feca6ab27f9100a0d9afe5d974309ee2c7e4dc3fc754a0b71695b1",
+                // See `zig fetch --save <url>` for a command-line interface for adding dependencies.
+                //.example = .{
+                //    // When updating this field to a new URL, be sure to delete the corresponding
+                //    // `hash`, otherwise you are communicating that you expect to find the old hash at
+                //    // the new URL.
+                //    .url = "https://example.com/foo.tar.gz",
+                //
+                //    // This is computed from the file contents of the directory of files that is
+                //    // obtained after fetching `url` and applying the inclusion rules given by
+                //    // `paths`.
+                //    //
+                //    // This field is the source of truth; packages do not come from a `url`; they
+                //    // come from a `hash`. `url` is just one of many possible mirrors for how to
+                //    // obtain a package matching this `hash`.
+                //    //
+                //    // Uses the [multihash](https://multiformats.io/multihash/) format.
+                //    .hash = "...",
+                //
+                //    // When this is provided, the package is found in a directory relative to the
+                //    // build root. In this case the package's hash is irrelevant and therefore not
+                //    // computed. This field and `url` are mutually exclusive.
+                //    .path = "foo",
+                //},
+                .hash = "1220fd4f4b5999fdaa5d6a80f515e9f486a49cac21e15d4e6ec5672cfc8c55bf329b",
                 // Make sure to grab the latest commit version and not whatever is in this sample here
-                .url = "https://github.com/joshua-software-dev/Zig-ImGui/archive/6fcbd57e5b1b1ac3b21f0eba4cdf27bacc198116.tar.gz",
+                .url = "git+https://gitlab.com/joshua.software.dev/Zig-ImGui.git#28e254661cb9d9812f2274a0b217d17a5f163da3",
             },
         },
     }
@@ -44,7 +61,7 @@ Zig-ImGui strives to be easy to use.  To use the pre-generated bindings, do the 
         // is enabled, but the option to use typetype manually at runtime is
         // still available
         .enable_freetype = true, // if unspecified, the default is false
-        // Enable ImGui's extention to freetype which uses lunasvg:
+        // Enable ImGui's extension to freetype which uses lunasvg:
         // https://github.com/sammycage/lunasvg
         // to support SVGinOT (SVG in Open Type) color emojis
         //
@@ -54,8 +71,6 @@ Zig-ImGui strives to be easy to use.  To use the pre-generated bindings, do the 
         // * Stateful Unicode features such as skin tone modifiers are not
         //   supported by the text renderer.
         .enable_lunasvg = false // if unspecified, the default is false
-        // Enable building ImGui's OpenGL loader backend
-        .enable_opengl = false // if unspecified, the default is false
     });
 
     // exes and shared libraries are also fine
@@ -70,7 +85,115 @@ Zig-ImGui strives to be easy to use.  To use the pre-generated bindings, do the 
     ```
 - In your project, use `@import("Zig-ImGui")` to obtain the bindings.
 - For more detailed documentation, see the [official ImGui documentation](https://github.com/ocornut/imgui/tree/v1.90/docs).
-- For an example of a real project using these bindings, see [joshua-software-dev/AthenaOverlay](https://codeberg.org/joshua-software-dev/AthenaOverlay).
+- For an example of a real project using these bindings, see [the included examples](https://gitlab.com/joshua.software.dev/Zig-ImGui/-/tree/master/examples/) or [joshua-software-dev/AthenaOverlay](https://codeberg.org/joshua-software-dev/AthenaOverlay).
+
+## Using the ImGui Backends
+
+ImGui contains a number of [BACKENDS](https://github.com/ocornut/imgui/blob/master/docs/BACKENDS.md) that provide easier setup and abstraction of underlying platforms to lower the amount of work necessary to facilitate using it. Zig-ImGui does not compile these automatically, and you'll need to include the ones you want to use in your build manually. For example, to use the `imgui_impl_opengl3` backend:
+
+```zig
+// in your build.zig
+
+const std = @import("std);
+
+const ZigImGui_build_script = @import("ZigImGui");
+
+pub fn build(b: *std.Build) void {
+    // ...
+
+    // init the ZigImGui dep with your preferred settings
+    const ZigImGui_dep = b.dependency("ZigImGui", .{
+        .target = target,
+        .optimize = optimize,
+        .enable_freetype = true,
+        .enable_lunasvg = true,
+    });
+    // get the underlying ocornut/imgui repo dependency that Zig-ImGui uses
+    const imgui_dep = ZigImGui_dep.builder.dependency("imgui", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const imgui_opengl = create_imgui_opengl_static_lib(b, target, optimize, imgui_dep, ZigImGui_dep);
+
+    const exe = b.addExecutable(.{
+        .name = "example",
+        .root_source_file = .{ .path = "src/main.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    exe.addImport("Zig-ImGui", ZigImGui_dep.module("Zig-ImGui"));
+    exe.linkLibrary(imgui_opengl);
+
+    // ...
+}
+
+fn create_imgui_opengl_static_lib(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    imgui_dep: *std.Build.Dependency,
+    ZigImGui_dep: *std.Build.Dependency,
+) *std.Build.Step.Compile {
+    // compile the desired backend into a separate static library
+    const imgui_opengl = b.addStaticLibrary(.{
+        .name = "imgui_opengl",
+        .target = target,
+        .optimize = optimize,
+    });
+    imgui_opengl.root_module.link_libcpp = true;
+    // link in the necessary symbols from ImGui base
+    imgui_opengl.linkLibrary(ZigImGui_dep.artifact("cimgui"));
+
+    // use the same override DEFINES that the ImGui base does
+    for (ZigImGui_build_script.IMGUI_C_DEFINES) |c_define| {
+        imgui_opengl.root_module.addCMacro(c_define[0], c_define[1]);
+    }
+
+    // ensure the backend has access to the ImGui headers it expects
+    imgui_opengl.addIncludePath(imgui_dep.path("."));
+    imgui_opengl.addIncludePath(imgui_dep.path("backends/"));
+
+    imgui_opengl.addCSourceFile(.{
+        .file = imgui_dep.path("backends/imgui_impl_opengl3.cpp"),
+        // use the same compile flags that the ImGui base does
+        .flags = ZigImGui_build_script.IMGUI_C_FLAGS,
+    });
+
+    return imgui_opengl;
+}
+```
+
+then, in your project, you'll want to define extern functions for the backend so you can call into them:
+
+```zig
+// src/main.zig
+
+const zimgui = @import("Zig-ImGui");
+
+pub extern fn ImGui_ImplOpenGL3_Init(glsl_version: ?[*:0]const u8) bool;
+pub extern fn ImGui_ImplOpenGL3_Shutdown() void;
+pub extern fn ImGui_ImplOpenGL3_NewFrame() void;
+pub extern fn ImGui_ImplOpenGL3_RenderDrawData(draw_data: *const anyopaque) void;
+
+pub fn main() !void {
+    // ...
+
+    var context = zimgui.CreateContext();
+
+    // ...
+
+    while (true) {
+        // ...
+
+        // this alone in not enough to use this backend, and is merely an
+        // example of the shape of things you need to do.
+        ImGui_ImplOpenGL3_NewFrame();
+
+        // ..
+    }
+}
+```
 
 ## Binding style
 

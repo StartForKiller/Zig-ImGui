@@ -1,0 +1,74 @@
+.{
+    .name = "example_glfw_opengl",
+    // This is a [Semantic Version](https://semver.org/).
+    // In a future version of Zig it will be used for package deduplication.
+    .version = "0.0.0",
+    // This field is optional.
+    // This is currently advisory only; Zig does not yet do anything
+    // with this value.
+    .minimum_zig_version = "0.12.0",
+    // This field is optional.
+    // Each dependency must either provide a `url` and `hash`, or a `path`.
+    // `zig build --fetch` can be used to fetch all dependencies of a package, recursively.
+    // Once all dependencies are fetched, `zig build` no longer requires
+    // internet connectivity.
+    .dependencies = .{
+        // See `zig fetch --save <url>` for a command-line interface for adding dependencies.
+        //.example = .{
+        //    // When updating this field to a new URL, be sure to delete the corresponding
+        //    // `hash`, otherwise you are communicating that you expect to find the old hash at
+        //    // the new URL.
+        //    .url = "https://example.com/foo.tar.gz",
+        //
+        //    // This is computed from the file contents of the directory of files that is
+        //    // obtained after fetching `url` and applying the inclusion rules given by
+        //    // `paths`.
+        //    //
+        //    // This field is the source of truth; packages do not come from a `url`; they
+        //    // come from a `hash`. `url` is just one of many possible mirrors for how to
+        //    // obtain a package matching this `hash`.
+        //    //
+        //    // Uses the [multihash](https://multiformats.io/multihash/) format.
+        //    .hash = "...",
+        //
+        //    // When this is provided, the package is found in a directory relative to the
+        //    // build root. In this case the package's hash is irrelevant and therefore not
+        //    // computed. This field and `url` are mutually exclusive.
+        //    .path = "foo",
+        //},
+        .mach_glfw = .{
+            .hash = "1220f8ce10b3d0b447d259cfdeebcb5fcec3751f9132171db9a6cc7b8b4f7dee9bd7",
+            .url = "https://github.com/hexops/mach-glfw/archive/0fdefbd7644383b17a29043e85f568fb21d8324d.tar.gz",
+        },
+        .opengl_headers = .{
+            .hash = "122039881e49baf86d75f6089ba126cbabc32f162fb2a27c1ee3ae906823b1f67d29",
+            .url = "https://github.com/hexops/opengl-headers/archive/5e816d785ebe841506542b2a2ea95aa8ec943fbf.tar.gz",
+        },
+        .zgl = .{
+            .hash = "122031fd90c76621e164cc9a6aa2afcb60b076dd0d404437cec7bde5081c9f4addc3",
+            .url = "https://codeberg.org/joshua-software-dev/zgl/archive/f01d727fc67fe1d423db6c516bba746144e6cc4a.tar.gz",
+        },
+        .ZigImGui = .{
+            .path = "../../",
+        },
+    },
+    // Specifies the set of files and directories that are included in this package.
+    // Only files and directories listed here are included in the `hash` that
+    // is computed for this package.
+    // Paths are relative to the build root. Use the empty string (`""`) to refer to
+    // the build root itself.
+    // A directory listed here means that all files within, recursively, are included.
+    .paths = .{
+        // This makes *all* files, recursively, included in this package. It is generally
+        // better to explicitly list the files and directories instead, to insure that
+        // fetching from tarballs, file system paths, and version control all result
+        // in the same contents hash.
+        "",
+        // For example...
+        //"build.zig",
+        //"build.zig.zon",
+        //"src",
+        //"LICENSE",
+        //"README.md",
+    },
+}
