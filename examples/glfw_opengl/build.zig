@@ -10,7 +10,6 @@ fn create_imgui_glfw_static_lib(
     optimize: std.builtin.OptimizeMode,
     glfw_dep: *std.Build.Dependency,
     imgui_dep: *std.Build.Dependency,
-    opengl_headers_dep: *std.Build.Dependency,
     ZigImGui_dep: *std.Build.Dependency,
 ) *std.Build.Step.Compile {
     // compile the desired backend into a separate static library
@@ -28,12 +27,15 @@ fn create_imgui_glfw_static_lib(
         imgui_glfw.root_module.addCMacro(c_define[0], c_define[1]);
     }
 
+    // ensure only a basic version of glfw is given to `imgui_impl_glfw.cpp` to
+    // ensure it can be loaded with no extra headers.
+    imgui_glfw.root_module.addCMacro("GLFW_INCLUDE_NONE", "1");
+
     // ensure the backend has access to the ImGui headers it expects
     imgui_glfw.addIncludePath(imgui_dep.path("."));
     imgui_glfw.addIncludePath(imgui_dep.path("backends/"));
 
     // this backend needs glfw and opengl headers as well
-    imgui_glfw.addIncludePath(opengl_headers_dep.path("."));
     imgui_glfw.addIncludePath(glfw_dep.path("include/"));
     mach_glfw.addPaths(imgui_glfw, glfw_dep.builder);
 
@@ -102,7 +104,6 @@ pub fn build(b: *std.Build) void {
         .enable_version_check = false,
     });
     const glfw_dep = mach_glfw_dep.builder.dependency("glfw", .{ .target = target, .optimize = optimize });
-    const opengl_headers_dep = b.dependency("opengl_headers", .{ .target = target, .optimize = optimize });
     const zgl_dep = b.dependency("zgl", .{ .target = target, .optimize = optimize });
     const ZigImGui_dep = b.dependency("ZigImGui", .{
         .target = target,
@@ -118,7 +119,6 @@ pub fn build(b: *std.Build) void {
         optimize,
         glfw_dep,
         imgui_dep,
-        opengl_headers_dep,
         ZigImGui_dep,
     );
     const imgui_opengl = create_imgui_opengl_static_lib(b, target, optimize, imgui_dep, ZigImGui_dep);
