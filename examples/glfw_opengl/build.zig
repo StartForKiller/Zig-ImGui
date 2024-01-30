@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const mach_glfw = @import("mach_glfw");
 const ZigImGui_build_script = @import("ZigImGui");
 
 
@@ -34,6 +35,7 @@ fn create_imgui_glfw_static_lib(
     // this backend needs glfw and opengl headers as well
     imgui_glfw.addIncludePath(opengl_headers_dep.path("."));
     imgui_glfw.addIncludePath(glfw_dep.path("include/"));
+    mach_glfw.addPaths(imgui_glfw, glfw_dep.builder);
 
     imgui_glfw.addCSourceFile(.{
         .file = imgui_dep.path("backends/imgui_impl_glfw.cpp"),
@@ -94,7 +96,11 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    const mach_glfw_dep = b.dependency("mach_glfw", .{ .target = target, .optimize = optimize });
+    const mach_glfw_dep = b.dependency("mach_glfw", .{
+        .target = target,
+        .optimize = optimize,
+        .enable_version_check = false,
+    });
     const glfw_dep = mach_glfw_dep.builder.dependency("glfw", .{ .target = target, .optimize = optimize });
     const opengl_headers_dep = b.dependency("opengl_headers", .{ .target = target, .optimize = optimize });
     const zgl_dep = b.dependency("zgl", .{ .target = target, .optimize = optimize });

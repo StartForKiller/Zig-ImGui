@@ -37,8 +37,8 @@
         //    .path = "foo",
         //},
         .mach_glfw = .{
-            .hash = "1220f8ce10b3d0b447d259cfdeebcb5fcec3751f9132171db9a6cc7b8b4f7dee9bd7",
-            .url = "git+https://github.com/hexops/mach-glfw.git#0fdefbd7644383b17a29043e85f568fb21d8324d",
+            .hash = "1220ad2693c35fea5ad65143a936c3d47e0c41e84ea82411e1a9cc750ce2029af6f7",
+            .url = "git+https://codeberg.org/joshua-software-dev/mach-glfw_fix.git#780bf3a8b25f1700d7aa3480287d515f39829c3e",
         },
         .opengl_headers = .{
             .hash = "122039881e49baf86d75f6089ba126cbabc32f162fb2a27c1ee3ae906823b1f67d29",
