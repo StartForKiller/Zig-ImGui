@@ -38,15 +38,15 @@
         //},
         .mach_glfw = .{
             .hash = "1220f8ce10b3d0b447d259cfdeebcb5fcec3751f9132171db9a6cc7b8b4f7dee9bd7",
-            .url = "https://github.com/hexops/mach-glfw/archive/0fdefbd7644383b17a29043e85f568fb21d8324d.tar.gz",
+            .url = "git+https://github.com/hexops/mach-glfw.git#0fdefbd7644383b17a29043e85f568fb21d8324d",
         },
         .opengl_headers = .{
             .hash = "122039881e49baf86d75f6089ba126cbabc32f162fb2a27c1ee3ae906823b1f67d29",
-            .url = "https://github.com/hexops/opengl-headers/archive/5e816d785ebe841506542b2a2ea95aa8ec943fbf.tar.gz",
+            .url = "git+https://github.com/hexops/opengl-headers.git#5e816d785ebe841506542b2a2ea95aa8ec943fbf",
         },
         .zgl = .{
             .hash = "122031fd90c76621e164cc9a6aa2afcb60b076dd0d404437cec7bde5081c9f4addc3",
-            .url = "https://codeberg.org/joshua-software-dev/zgl/archive/f01d727fc67fe1d423db6c516bba746144e6cc4a.tar.gz",
+            .url = "git+https://codeberg.org/joshua-software-dev/zgl.git#f01d727fc67fe1d423db6c516bba746144e6cc4a",
         },
         .ZigImGui = .{
             .path = "../../",

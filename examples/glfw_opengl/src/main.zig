@@ -1,4 +1,8 @@
+const builtin = @import("builtin");
 const std = @import("std");
+
+const imgui_glfw = @import("imgui_glfw.zig");
+const imgui_ogl = @import("imgui_ogl.zig");
 
 const glfw = @import("mach-glfw");
 const zgl_helpers = @import("zgl");
@@ -6,18 +10,9 @@ const zgl = zgl_helpers.binding;
 const zimgui = @import("Zig-ImGui");
 
 
-pub extern fn ImGui_ImplOpenGL3_Init(glsl_version: ?[*:0]const u8) bool;
-pub extern fn ImGui_ImplOpenGL3_Shutdown() void;
-pub extern fn ImGui_ImplOpenGL3_NewFrame() void;
-pub extern fn ImGui_ImplOpenGL3_RenderDrawData(draw_data: *const anyopaque) void;
-
-pub extern fn ImGui_ImplGlfw_InitForOpenGL(window: *anyopaque, install_callbacks: bool) bool;
-pub extern fn ImGui_ImplGlfw_Shutdown() void;
-pub extern fn ImGui_ImplGlfw_NewFrame() void;
-
 /// Default GLFW error handling callback
 fn errorCallback(error_code: glfw.ErrorCode, description: [:0]const u8) void {
-    std.log.err("glfw: {}: {s}\n", .{ error_code, description });
+    std.log.err("GLFW: {}: {s}\n", .{ error_code, description });
 }
 
 fn glGetProcAddress(p: glfw.GLProc, proc: [:0]const u8) ?zgl.FunctionPointer {
@@ -25,11 +20,12 @@ fn glGetProcAddress(p: glfw.GLProc, proc: [:0]const u8) ?zgl.FunctionPointer {
     return glfw.getProcAddress(proc);
 }
 
-pub fn main() !void {
+// Main code
+pub fn main() !u8 {
     glfw.setErrorCallback(errorCallback);
     if (!glfw.init(.{})) {
         std.log.err("failed to initialize GLFW: {?s}", .{ glfw.getErrorString() });
-        std.process.exit(1);
+        return 1;
     }
     defer glfw.terminate();
 
@@ -40,70 +36,111 @@ pub fn main() !void {
         "mach-glfw + zig-opengl + Zig-ImGui",
         null,
         null,
-        .{},
+        switch (builtin.os.tag.isDarwin()) {
+            true => .{
+                .client_api = .opengl_api,
+                .opengl_forward_compat = true,
+                .opengl_profile = .opengl_core_profile,
+                .context_version_major = 3,
+                .context_version_minor = 2,
+            },
+            else => .{
+                .client_api = .opengl_api,
+                .context_version_major = 4,
+                .context_version_minor = 6,
+            },
+        },
     ) orelse {
         std.log.err("failed to create GLFW window: {?s}", .{ glfw.getErrorString() });
-        std.process.exit(1);
+        return 1;
     };
     defer window.destroy();
 
     glfw.makeContextCurrent(window);
+    glfw.swapInterval(1); // Enable Vsync
 
+    // dynamic load opengl
     const proc: glfw.GLProc = undefined;
     try zgl.load(proc, glGetProcAddress);
 
+    // Setup Dear ImGui context
     const im_context = zimgui.CreateContext();
     zimgui.SetCurrentContext(im_context);
     {
         const im_io = zimgui.GetIO();
         im_io.IniFilename = null;
+        im_io.ConfigFlags = zimgui.ConfigFlags.with(
+            im_io.ConfigFlags,
+            .{ .NavEnableKeyboard = true, .NavEnableGamepad = true },
+        );
     }
 
+    // Setup Dear ImGui style
     zimgui.StyleColorsDark();
-    _ = ImGui_ImplGlfw_InitForOpenGL(@ptrCast(window.handle), true);
-    _ = ImGui_ImplOpenGL3_Init(null);
 
-    // Wait for the user to close the window.
+    // Setup Platform/Renderer backends
+    _ = imgui_glfw.ImGui_ImplGlfw_InitForOpenGL(window.handle, true);
+    _ = imgui_ogl.ImGui_ImplOpenGL3_Init(null);
+
+    // INSERT LOAD FONTS HERE
+
+    const clear_color = zimgui.Vec4.init(1.0, 0.0, 1.0, 1.0);
+
+    // Main loop
     while (!window.shouldClose()) {
+        // Poll and handle events (inputs, window resize, etc.)
         glfw.pollEvents();
-        const window_size = window.getFramebufferSize();
 
-        zgl.clearColor(1, 0, 1, 1);
-        zgl.clear(zgl.COLOR_BUFFER_BIT);
-
-        ImGui_ImplOpenGL3_NewFrame();
-        var im_io = zimgui.GetIO();
-        im_io.DisplaySize = zimgui.Vec2.init(@floatFromInt(window_size.width), @floatFromInt(window_size.height));
+        // Start the Dear ImGui frame
+        imgui_ogl.ImGui_ImplOpenGL3_NewFrame();
+        imgui_glfw.ImGui_ImplGlfw_NewFrame();
         zimgui.NewFrame();
 
-        // This should be all that's necessary to center the window,
-        // unforunately imgui ignores these settings for the demo window, so
-        // something more jank is in order
-        //
-        // zimgui.SetNextWindowPos(zimgui.Vec2.init(
-        //     ((@as(f32, @floatFromInt(window_size.width)) - 550) / 2),
-        //     ((@as(f32, @floatFromInt(window_size.height)) - 680) / 2),
-        // ));
+        // Normal Dear ImGui use
+        {
+            // This should be all that's necessary to center the window,
+            // unforunately imgui ignores these settings for the demo window, so
+            // something more jank is in order
+            //
+            // zimgui.SetNextWindowPos(zimgui.Vec2.init(
+            //     ((@as(f32, @floatFromInt(window_size.width)) - 550) / 2),
+            //     ((@as(f32, @floatFromInt(window_size.height)) - 680) / 2),
+            // ));
 
-        // Behold: Jank.
-        const demo_window_x: f32 = 550.0;
-        const demo_window_y: f32 = 680.0;
-        const demo_offset_x: f32 = 650.0;
-        const demo_offset_y: f32 = 20.0;
-        const view = zimgui.GetMainViewport();
-        view.?.WorkPos.x -= demo_offset_x - ((@as(f32, @floatFromInt(window_size.width)) - demo_window_x) / 2);
-        view.?.WorkPos.y -= demo_offset_y - ((@as(f32, @floatFromInt(window_size.height)) - demo_window_y) / 2);
+            // Behold: Jank.
+            const demo_window_x: f32 = 550.0;
+            const demo_window_y: f32 = 680.0;
+            const demo_offset_x: f32 = 650.0;
+            const demo_offset_y: f32 = 20.0;
+            const view = zimgui.GetMainViewport();
+            const im_io = zimgui.GetIO();
 
-        zimgui.ShowDemoWindow();
+            view.?.WorkPos.x -= demo_offset_x - ((im_io.DisplaySize.x - demo_window_x) / 2);
+            view.?.WorkPos.y -= demo_offset_y - ((im_io.DisplaySize.y - demo_window_y) / 2);
 
-        zimgui.EndFrame();
+            zimgui.ShowDemoWindow();
+        }
+
+        // Rendering
         zimgui.Render();
-        ImGui_ImplOpenGL3_RenderDrawData(zimgui.GetDrawData());
+        const fb_size = window.getFramebufferSize();
+        zgl.viewport(0, 0, @intCast(fb_size.width), @intCast(fb_size.height));
+        zgl.clearColor(
+            clear_color.x * clear_color.w,
+            clear_color.y * clear_color.w,
+            clear_color.z * clear_color.w,
+            clear_color.w,
+        );
+        zgl.clear(zgl.COLOR_BUFFER_BIT);
+        imgui_ogl.ImGui_ImplOpenGL3_RenderDrawData(zimgui.GetDrawData());
 
         window.swapBuffers();
     }
 
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
+    // Cleanup
+    imgui_ogl.ImGui_ImplOpenGL3_Shutdown();
+    imgui_glfw.ImGui_ImplGlfw_Shutdown();
     zimgui.DestroyContext();
+
+    return 0;
 }
