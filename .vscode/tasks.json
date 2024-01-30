@@ -1,0 +1,31 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+        {
+            "label": "build opengl",
+            "type": "shell",
+            "command": "zig build",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/examples/glfw_opengl/"
+            }
+        },
+		{
+            "label": "build vulkan",
+            "type": "shell",
+            "command": "zig build",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/examples/glfw_vulkan/"
+            }
+        },
+	]
+}
