@@ -4,6 +4,7 @@ const std = @import("std");
 const imgui_glfw = @import("imgui_glfw.zig");
 const imgui_ogl = @import("imgui_ogl.zig");
 
+const build_options = @import("build_options");
 const glfw = @import("mach-glfw");
 const zgl_helpers = @import("zgl");
 const zgl = zgl_helpers.binding;
@@ -36,19 +37,15 @@ pub fn main() !u8 {
         "mach-glfw + zig-opengl + Zig-ImGui",
         null,
         null,
-        switch (builtin.os.tag.isDarwin()) {
-            true => .{
-                .client_api = .opengl_api,
-                .opengl_forward_compat = true,
-                .opengl_profile = .opengl_core_profile,
-                .context_version_major = 3,
-                .context_version_minor = 2,
+        .{
+            .client_api = switch (build_options.OPENGL_ES_PROFILE) {
+                true => .opengl_es_api,
+                else => .opengl_api,
             },
-            else => .{
-                .client_api = .opengl_api,
-                .context_version_major = 4,
-                .context_version_minor = 6,
-            },
+            .opengl_forward_compat = builtin.os.tag.isDarwin(),
+            .opengl_profile = .opengl_core_profile,
+            .context_version_major = build_options.OPENGL_MAJOR_VERSION,
+            .context_version_minor = build_options.OPENGL_MINOR_VERSION,
         },
     ) orelse {
         std.log.err("failed to create GLFW window: {?s}", .{ glfw.getErrorString() });
@@ -62,6 +59,8 @@ pub fn main() !u8 {
     // dynamic load opengl
     const proc: glfw.GLProc = undefined;
     try zgl.load(proc, glGetProcAddress);
+
+    std.log.debug("OpenGL Version = {?s}", .{ zgl_helpers.getString(.version) });
 
     // Setup Dear ImGui context
     const im_context = zimgui.CreateContext();
@@ -80,7 +79,21 @@ pub fn main() !u8 {
 
     // Setup Platform/Renderer backends
     _ = imgui_glfw.ImGui_ImplGlfw_InitForOpenGL(window.handle, true);
-    _ = imgui_ogl.ImGui_ImplOpenGL3_Init(null);
+    switch (imgui_ogl.ImGui_ImplOpenGL3_LoaderInit(@ptrCast(&glfw.getProcAddress))) {
+        .ok => {},
+        .init_error, .open_library => return error.LoadOpenGLFailed,
+        .opengl_version_unsupported => if (!build_options.OPENGL_ES_PROFILE) return error.UnsupportedOpenGlVersion,
+    }
+    _ = imgui_ogl.ImGui_ImplOpenGL3_Init(
+        if (build_options.OPENGL_ES_PROFILE and build_options.OPENGL_MAJOR_VERSION <= 2)
+            "#version 100"
+        else if (build_options.OPENGL_ES_PROFILE and build_options.OPENGL_MAJOR_VERSION >= 3)
+            "#version 300 es"
+        else if (builtin.target.isDarwin())
+            "#version 150"
+        else
+            null
+    );
 
     // INSERT LOAD FONTS HERE
 

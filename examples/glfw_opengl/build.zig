@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const mach_glfw = @import("mach_glfw");
+const zgl = @import("zgl");
 const ZigImGui_build_script = @import("ZigImGui");
 
 
@@ -48,13 +49,35 @@ fn create_imgui_glfw_static_lib(
     return imgui_glfw;
 }
 
+/// touches up `imgui_impl_opengl3.cpp` to remove its needless incompatiblity
+/// with simultaneous dynamic loading of opengl and OpenGL ES 2.0 support
+fn generate_modified_imgui_source(b: *std.Build, path: []const u8) ![]const u8 {
+
+    var list = blk: {
+        const file = try std.fs.openFileAbsolute(path, .{});
+        defer file.close();
+
+        var list = std.ArrayList(u8).init(b.allocator);
+        try file.reader().readAllArrayList(&list, std.math.maxInt(usize));
+        break :blk list;
+    };
+    defer list.deinit();
+
+    const search_text = "#elif !defined(IMGUI_IMPL_OPENGL_LOADER_CUSTOM)";
+    const start_pos = std.mem.indexOf(u8, list.items, search_text)
+        orelse return error.InvalidSourceFile;
+    try list.replaceRange(start_pos, search_text.len, "#else");
+
+    return list.toOwnedSlice();
+}
+
 fn create_imgui_opengl_static_lib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     imgui_dep: *std.Build.Dependency,
     ZigImGui_dep: *std.Build.Dependency,
-) *std.Build.Step.Compile {
+) !*std.Build.Step.Compile {
     // compile the desired backend into a separate static library
     const imgui_opengl = b.addStaticLibrary(.{
         .name = "imgui_opengl",
@@ -69,13 +92,19 @@ fn create_imgui_opengl_static_lib(
     for (ZigImGui_build_script.IMGUI_C_DEFINES) |c_define| {
         imgui_opengl.root_module.addCMacro(c_define[0], c_define[1]);
     }
+    imgui_opengl.root_module.addCMacro("IMGUI_IMPL_OPENGL_LOADER_CUSTOM", "1");
 
     // ensure the backend has access to the ImGui headers it expects
     imgui_opengl.addIncludePath(imgui_dep.path("."));
     imgui_opengl.addIncludePath(imgui_dep.path("backends/"));
 
     imgui_opengl.addCSourceFile(.{
-        .file = imgui_dep.path("backends/imgui_impl_opengl3.cpp"),
+        .file = b.addWriteFiles().add("imgui_impl_opengl3.cpp",
+            try generate_modified_imgui_source(
+                b,
+                imgui_dep.path("backends/imgui_impl_opengl3.cpp").getPath(imgui_dep.builder),
+            ),
+        ),
         // use the same compile flags that the ImGui base does
         .flags = ZigImGui_build_script.IMGUI_C_FLAGS,
     });
@@ -86,7 +115,7 @@ fn create_imgui_opengl_static_lib(
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
 // runner.
-pub fn build(b: *std.Build) void {
+pub fn build(b: *std.Build) !void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -98,13 +127,47 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
+    const force_opengl_version = b.option(
+        []const u8,
+        "force_opengl_version",
+        "Force a particular OpenGL target version. Versions between " ++
+        "'ES_VERSION_2_0'-'ES_VERSION_3_2' and 'VERSION_3_2'-'VERSION_4_6' " ++
+        "are expected to work on at least 1 platform, others versions are " ++
+        "unsupported, but still accepted by this argument for completeness.",
+    );
+
+    const selected_opengl_version =
+        if (force_opengl_version) |forced|
+            zgl.OpenGlVersionLookupTable.get(forced)
+                orelse return error.UnsupportedOpenGlVersion
+        else if (target.result.isDarwin())
+            zgl.OpenGlVersionLookupTable.get("ES_VERSION_3_2")
+                orelse unreachable
+        else if (target.result.os.tag == .windows)
+            zgl.OpenGlVersionLookupTable.get("VERSION_3_2")
+                orelse unreachable
+        else
+            zgl.OpenGlVersionLookupTable.get("ES_VERSION_2_0")
+                orelse unreachable;
+
     const mach_glfw_dep = b.dependency("mach_glfw", .{
         .target = target,
         .optimize = optimize,
         .enable_version_check = false,
     });
     const glfw_dep = mach_glfw_dep.builder.dependency("glfw", .{ .target = target, .optimize = optimize });
-    const zgl_dep = b.dependency("zgl", .{ .target = target, .optimize = optimize });
+    const zgl_dep = b.dependency("zgl", .{
+        .target = target,
+        .optimize = optimize,
+        .binding_version = @as([]const u8, b.fmt("{s}VERSION_{d}_{d}", .{
+            if (selected_opengl_version.es)
+                "ES_"
+            else
+                "",
+            selected_opengl_version.major,
+            selected_opengl_version.minor,
+        })),
+    });
     const ZigImGui_dep = b.dependency("ZigImGui", .{
         .target = target,
         .optimize = optimize,
@@ -113,15 +176,8 @@ pub fn build(b: *std.Build) void {
     });
     const imgui_dep = ZigImGui_dep.builder.dependency("imgui", .{ .target = target, .optimize = optimize });
 
-    const imgui_glfw = create_imgui_glfw_static_lib(
-        b,
-        target,
-        optimize,
-        glfw_dep,
-        imgui_dep,
-        ZigImGui_dep,
-    );
-    const imgui_opengl = create_imgui_opengl_static_lib(b, target, optimize, imgui_dep, ZigImGui_dep);
+    const imgui_glfw = create_imgui_glfw_static_lib(b, target, optimize, glfw_dep, imgui_dep, ZigImGui_dep);
+    const imgui_opengl = try create_imgui_opengl_static_lib(b, target, optimize, imgui_dep, ZigImGui_dep);
 
     const imports: []const std.Build.Module.Import = &.{
         .{ .name = "mach-glfw", .module = mach_glfw_dep.module("mach-glfw") },
@@ -138,6 +194,15 @@ pub fn build(b: *std.Build) void {
     for (imports) |import| {
         exe.root_module.addImport(import.name, import.module);
     }
+
+    {
+        const opts = b.addOptions();
+        opts.addOption(u32, "OPENGL_MAJOR_VERSION", selected_opengl_version.major);
+        opts.addOption(u32, "OPENGL_MINOR_VERSION", selected_opengl_version.minor);
+        opts.addOption(bool, "OPENGL_ES_PROFILE", selected_opengl_version.es);
+        exe.root_module.addImport("build_options", opts.createModule());
+    }
+
     exe.linkLibrary(imgui_glfw);
     exe.linkLibrary(imgui_opengl);
 
