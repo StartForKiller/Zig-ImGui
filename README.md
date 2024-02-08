@@ -2,9 +2,9 @@
 
 Zig-ImGui uses [cimgui](https://github.com/cimgui/cimgui) to generate [Zig](https://github.com/ziglang/zig) bindings for [Dear ImGui](https://github.com/ocornut/imgui).
 
-It is currently up to date with [Dear ImGui v1.90](https://github.com/ocornut/imgui/releases/tag/v1.90).
+It is currently up to date with [Dear ImGui v1.90.1](https://github.com/ocornut/imgui/releases/tag/v1.90.1).
 
-At the time of writing, Zig-ImGui supports zig `0.12.0-dev.2059+42389cb9c`
+At the time of writing, Zig-ImGui supports zig `0.12.0-dev.2341+42389cb9c`
 
 ## Using the pre-generated bindings
 
@@ -85,7 +85,7 @@ Zig-ImGui strives to be easy to use.  To use the pre-generated bindings, do the 
     ```
 - In your project, use `@import("Zig-ImGui")` to obtain the bindings.
 - For more detailed documentation, see the [official ImGui documentation](https://github.com/ocornut/imgui/tree/v1.90/docs).
-- For an example of a real project using these bindings, see [the included examples](https://gitlab.com/joshua.software.dev/Zig-ImGui/-/tree/master/examples/) or [joshua-software-dev/AthenaOverlay](https://codeberg.org/joshua-software-dev/AthenaOverlay).
+- For an example of using these bindings, see [the included examples](https://gitlab.com/joshua.software.dev/Zig-ImGui/-/tree/master/examples/) or for a real project see [joshua-software-dev/AthenaOverlay](https://codeberg.org/joshua-software-dev/AthenaOverlay).
 
 ## Using the ImGui Backends
 

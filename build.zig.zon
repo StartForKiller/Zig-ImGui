@@ -1,6 +1,6 @@
 .{
     .name = "Zig-ImGui",
-    .version = "1.90.0",
+    .version = "1.90.1",
     .dependencies = .{
         .cimgui = .{
             .hash = "1220d2a053494548c6d1b4f5e827c61b11d73ea0b87a286722c55407e63c8b2df3c0",
@@ -11,8 +11,8 @@
             .url = "git+https://github.com/hexops/freetype.git#398638fd1cb723e478658ea371fe3be1a4dce0ae",
         },
         .imgui = .{
-            .hash = "12206f606ad10c8e1ec2187fe2750663ef5b1b7ae20f6c12a7f6eb108ac85555960b",
-            .url = "git+https://github.com/ocornut/imgui.git#ce0d0ac8298ce164b5d862577e8b087d92f6e90e",
+            .hash = "1220feb98197770f4944e95bba4c1f2769ee06a205ba08b31b3b7ece728e8beea062",
+            .url = "git+https://github.com/ocornut/imgui.git#32a3c61d0001d75cdcf033015a1e27f1ea12c848",
         },
         .lunasvg = .{
             .hash = "122079db91cf4c0ed8d21659678c4299f55dadbb6a89020f25a49468485b19e2fe6b",

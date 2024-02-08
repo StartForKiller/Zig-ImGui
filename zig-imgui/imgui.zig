@@ -1305,7 +1305,7 @@ pub const TabItemFlags = packed struct {
     NoReorder: bool = false,
     Leading: bool = false,
     Trailing: bool = false,
-    __reserved_bit_08: bool = false,
+    NoAssumedClosure: bool = false,
     __reserved_bit_09: bool = false,
     __reserved_bit_10: bool = false,
     __reserved_bit_11: bool = false,
@@ -2695,6 +2695,7 @@ pub const IO = extern struct {
     MouseDragThreshold: f32,
     KeyRepeatDelay: f32,
     KeyRepeatRate: f32,
+    ConfigDebugIsDebuggerPresent: bool,
     ConfigDebugBeginReturnValueOnce: bool,
     ConfigDebugBeginReturnValueLoop: bool,
     ConfigDebugIgnoreFocusLoss: bool,
@@ -3613,6 +3614,9 @@ pub inline fn CreateContext() ?*Context {
 /// DebugCheckVersionAndDataLayout(version_str: ?[*:0]const u8, sz_io: usize, sz_style: usize, sz_vec2: usize, sz_vec4: usize, sz_drawvert: usize, sz_drawidx: usize) bool
 pub const DebugCheckVersionAndDataLayout = raw.igDebugCheckVersionAndDataLayout;
 
+/// DebugFlashStyleColor(idx: Col) void
+pub const DebugFlashStyleColor = raw.igDebugFlashStyleColor;
+
 /// DebugTextEncoding(text: ?[*]const u8) void
 pub const DebugTextEncoding = raw.igDebugTextEncoding;
 
@@ -4056,10 +4060,10 @@ pub const GetWindowViewport = raw.igGetWindowViewport;
 /// GetWindowWidth() f32
 pub const GetWindowWidth = raw.igGetWindowWidth;
 
-/// ImageExt(user_texture_id: TextureID, size: Vec2, uv0: Vec2, uv1: Vec2, tint_col: Vec4, border_col: Vec4) void
+/// ImageExt(user_texture_id: TextureID, image_size: Vec2, uv0: Vec2, uv1: Vec2, tint_col: Vec4, border_col: Vec4) void
 pub const ImageExt = raw.igImage;
-pub inline fn Image(user_texture_id: TextureID, size: Vec2) void {
-    return @This().ImageExt(user_texture_id, size, .{.x=0,.y=0}, .{.x=1,.y=1}, .{.x=1,.y=1,.z=1,.w=1}, .{.x=0,.y=0,.z=0,.w=0});
+pub inline fn Image(user_texture_id: TextureID, image_size: Vec2) void {
+    return @This().ImageExt(user_texture_id, image_size, .{.x=0,.y=0}, .{.x=1,.y=1}, .{.x=1,.y=1,.z=1,.w=1}, .{.x=0,.y=0,.z=0,.w=0});
 }
 
 /// ImageButtonExt(str_id: ?[*:0]const u8, user_texture_id: TextureID, image_size: Vec2, uv0: Vec2, uv1: Vec2, bg_col: Vec4, tint_col: Vec4) bool
@@ -5420,6 +5424,7 @@ pub const raw = struct {
     pub extern fn igCombo_FnStrPtr(label: ?[*:0]const u8, current_item: ?*i32, getter: ?*fn (user_data: ?*anyopaque, idx: i32) callconv(.C) ?[*:0]const u8, user_data: ?*anyopaque, items_count: i32, popup_max_height_in_items: i32) callconv(.C) bool;
     pub extern fn igCreateContext(shared_font_atlas: ?*FontAtlas) callconv(.C) ?*Context;
     pub extern fn igDebugCheckVersionAndDataLayout(version_str: ?[*:0]const u8, sz_io: usize, sz_style: usize, sz_vec2: usize, sz_vec4: usize, sz_drawvert: usize, sz_drawidx: usize) callconv(.C) bool;
+    pub extern fn igDebugFlashStyleColor(idx: Col) callconv(.C) void;
     pub extern fn igDebugTextEncoding(text: ?[*]const u8) callconv(.C) void;
     pub extern fn igDestroyContext(ctx: ?*Context) callconv(.C) void;
     pub extern fn igDestroyPlatformWindows() callconv(.C) void;
@@ -5528,7 +5533,7 @@ pub const raw = struct {
     pub extern fn igGetWindowSize(pOut: *Vec2) callconv(.C) void;
     pub extern fn igGetWindowViewport() callconv(.C) ?*Viewport;
     pub extern fn igGetWindowWidth() callconv(.C) f32;
-    pub extern fn igImage(user_texture_id: TextureID, size: Vec2, uv0: Vec2, uv1: Vec2, tint_col: Vec4, border_col: Vec4) callconv(.C) void;
+    pub extern fn igImage(user_texture_id: TextureID, image_size: Vec2, uv0: Vec2, uv1: Vec2, tint_col: Vec4, border_col: Vec4) callconv(.C) void;
     pub extern fn igImageButton(str_id: ?[*:0]const u8, user_texture_id: TextureID, image_size: Vec2, uv0: Vec2, uv1: Vec2, bg_col: Vec4, tint_col: Vec4) callconv(.C) bool;
     pub extern fn igIndent(indent_w: f32) callconv(.C) void;
     pub extern fn igInputDouble(label: ?[*:0]const u8, v: *f64, step: f64, step_fast: f64, format: ?[*:0]const u8, flags: InputTextFlagsInt) callconv(.C) bool;
