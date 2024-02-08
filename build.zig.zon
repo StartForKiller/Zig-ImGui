@@ -2,6 +2,10 @@
     .name = "Zig-ImGui",
     .version = "1.90.0",
     .dependencies = .{
+        .cimgui = .{
+            .hash = "1220d2a053494548c6d1b4f5e827c61b11d73ea0b87a286722c55407e63c8b2df3c0",
+            .url = "git+https://github.com/cimgui/cimgui.git#04961a999e4cee4fde34d5df58383353f409d007"
+        },
         .freetype = .{
             .hash = "12208c57b72e3fb5c8d5d3e667e2e21ca1d9e2b6fc3f84182b320f63933f591823da",
             .url = "git+https://github.com/hexops/freetype.git#398638fd1cb723e478658ea371fe3be1a4dce0ae",

@@ -1,18 +1,19 @@
 #!/usr/bin/python3
 
+import os
 import sys
 if sys.version_info[0] != 3:
     print ("Error: This script requires python 3, current version is"), (sys.version)
     sys.exit(1)
 
-STRUCT_JSON_FILE = 'cimgui/generator/output/structs_and_enums.json'
-TYPEDEFS_JSON_FILE = 'cimgui/generator/output/typedefs_dict.json'
-COMMANDS_JSON_FILE = 'cimgui/generator/output/definitions.json'
-IMPL_JSON_FILE = 'cimgui/generator/output/definitions_impl.json'
+STRUCT_JSON_FILE = os.environ.get('STRUCT_JSON_FILE', 'cimgui/generator/output/structs_and_enums.json')
+TYPEDEFS_JSON_FILE = os.environ.get('TYPEDEFS_JSON_FILE', 'cimgui/generator/output/typedefs_dict.json')
+COMMANDS_JSON_FILE = os.environ.get('COMMANDS_JSON_FILE', 'cimgui/generator/output/definitions.json')
+IMPL_JSON_FILE = os.environ.get('IMPL_JSON_FILE', 'cimgui/generator/output/definitions_impl.json')
 
-OUTPUT_DIR = 'zig-imgui'
-OUTPUT_FILE = 'imgui.zig'
-TEMPLATE_FILE = 'template.zig'
+OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'zig-imgui')
+OUTPUT_FILE = os.environ.get('OUTPUT_FILE', 'imgui.zig')
+TEMPLATE_FILE = os.environ.get('TEMPLATE_FILE','template.zig')
 
 function_name_whitelist = { 'ImGuiFreeType_GetBuilderForFreeType', 'ImGuiFreeType_SetAllocatorFunctions' }
 

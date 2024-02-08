@@ -6,7 +6,7 @@ pub const IMGUI_C_DEFINES: []const [2][]const u8 = &.{
     .{ "IMGUI_DISABLE_OBSOLETE_KEYIO", "1" },
     .{ "IMGUI_IMPL_API", "extern \"C\"" },
     .{ "IMGUI_USE_WCHAR32", "1" },
-    .{ "ImTextureID", "unsigned long long" },
+    .{ "ImTextureID", "ImU64" },
 };
 
 pub const IMGUI_C_FLAGS: []const []const u8 = &.{
@@ -14,7 +14,85 @@ pub const IMGUI_C_FLAGS: []const []const u8 = &.{
     "-fvisibility=hidden",
 };
 
-pub fn build(b: *std.Build) void {
+fn create_generation_step(
+    b: *std.Build,
+    cimgui_dep: *std.Build.Dependency,
+    imgui_dep: *std.Build.Dependency,
+) !*std.Build.Step {
+    // luajit is necessary to run the cimgui generator script
+    const lua_path = try b.findProgram(&.{ "luajit" }, &.{});
+
+    // hopefully, this can be replaced by a rewrite in zig in the future, until
+    // then, a python installation is necessary to generate the bindings
+    const python_path = try b.findProgram(&.{ "python", "python3" }, &.{});
+
+    const cimgui_generator_lazypath = cimgui_dep.path("generator/");
+    const cimgui_generator_path = cimgui_generator_lazypath.getPath(b);
+
+    const cimgui_generate_command = b.addSystemCommand(&.{
+        lua_path,
+        b.pathJoin(&.{ cimgui_generator_path, "generator.lua" }),
+        // unfortunately, the cimgui generator script doesn't give the option
+        // to provide a full path to a compiler, and instead it accepts the
+        // exact strings "gcc", "clang", "cl", or "zig cc", which it will then
+        // look for in $PATH
+        "zig cc",
+        "freetype",
+        "-DIMGUI_ENABLE_STB_TRUETYPE -DIMGUI_USE_WCHAR32",
+    });
+    cimgui_generate_command.setCwd(cimgui_generator_lazypath);
+    cimgui_generate_command.setEnvironmentVariable("IMGUI_PATH", imgui_dep.path("").getPath(b));
+
+    const fix_tool = b.addExecutable(.{
+        .name = "fix_cimgui_sources",
+        .root_source_file = .{ .path = "zig-imgui/fix_generated_sources.zig" },
+        .target = b.host,
+    });
+    const fix_step = b.addRunArtifact(fix_tool);
+    fix_step.step.dependOn(&cimgui_generate_command.step);
+    fix_step.addArg(cimgui_dep.path("").getPath(b));
+
+    const write_step = b.addWriteFiles();
+    write_step.step.dependOn(&fix_step.step);
+    write_step.addCopyFileToSource(
+        .{ .cwd_relative = cimgui_dep.path("cimgui.cpp").getPath(b) },
+        "zig-imgui/cimgui.cpp"
+    );
+    write_step.addCopyFileToSource(
+        .{ .cwd_relative = cimgui_dep.path("cimgui.h").getPath(b) },
+        "zig-imgui/cimgui.h"
+    );
+
+    const python_generate_command = b.addSystemCommand(&.{
+        python_path,
+        b.pathFromRoot("generate.py"),
+    });
+    python_generate_command.step.dependOn(&write_step.step);
+    python_generate_command.setEnvironmentVariable("STRUCT_JSON_FILE", b.pathJoin(&.{
+        cimgui_generator_path,
+        "output",
+        "structs_and_enums.json",
+    }));
+    python_generate_command.setEnvironmentVariable("TYPEDEFS_JSON_FILE", b.pathJoin(&.{
+        cimgui_generator_path,
+        "output",
+        "typedefs_dict.json",
+    }));
+    python_generate_command.setEnvironmentVariable("COMMANDS_JSON_FILE", b.pathJoin(&.{
+        cimgui_generator_path,
+        "output",
+        "definitions.json",
+    }));
+    python_generate_command.setEnvironmentVariable("IMPL_JSON_FILE", b.pathJoin(&.{
+        cimgui_generator_path,
+        "output",
+        "definitions_impl.json",
+    }));
+
+    return &python_generate_command.step;
+}
+
+pub fn build(b: *std.Build) !void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -34,19 +112,26 @@ pub fn build(b: *std.Build) void {
         "Enable building lunasvg to provide better emoji support in freetype. Requires freetype to be enabled."
     ) orelse false;
 
+    const cimgui_dep = b.dependency("cimgui", .{ .target = target, .optimize = optimize });
     const freetype_dep: ?*std.Build.Dependency =
         if (enable_freetype)
             b.dependency("freetype", .{ .target = target, .optimize = optimize })
         else
             null;
-
     const imgui_dep = b.dependency("imgui", .{ .target = target, .optimize = optimize });
-
     const lunasvg_dep: ?*std.Build.Dependency =
         if (enable_freetype)
             b.dependency("lunasvg", .{ .target = target, .optimize = optimize })
         else
             null;
+
+    const gen_step = try create_generation_step(b, cimgui_dep, imgui_dep);
+    const cli_generate_step = b.step(
+        "generate",
+        "Generate cimgui and zig bindings for imgui. " ++
+        "Requires that luajit/lua and python/python3 are available in $PATH",
+    );
+    cli_generate_step.dependOn(gen_step);
 
     const cimgui = b.addStaticLibrary(.{
         .name = "cimgui",
