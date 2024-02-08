@@ -3,16 +3,16 @@
     .version = "1.90.0",
     .dependencies = .{
         .freetype = .{
-            .hash = "12202a6c3674d7a3feda2fe45c1c9fdef81f351cc2f0235b87788ad3e5ce15beda36",
-            .url = "https://gitlab.com/joshua.software.dev/freetype-zigmasterfix/-/archive/d025bc5f31ed842751ae3850614e8e57cc1354b6/freetype-zigmasterfix-d025bc5f31ed842751ae3850614e8e57cc1354b6.tar.gz",
+            .hash = "12208c57b72e3fb5c8d5d3e667e2e21ca1d9e2b6fc3f84182b320f63933f591823da",
+            .url = "git+https://github.com/hexops/freetype.git#398638fd1cb723e478658ea371fe3be1a4dce0ae",
         },
         .imgui = .{
-            .hash = "12208cdd9ecdd631cac23b4674c77cce372c479d197138c9bfd83e1aaaaf76fe20bf",
-            .url = "https://github.com/ocornut/imgui/archive/ce0d0ac8298ce164b5d862577e8b087d92f6e90e.tar.gz",
+            .hash = "12206f606ad10c8e1ec2187fe2750663ef5b1b7ae20f6c12a7f6eb108ac85555960b",
+            .url = "git+https://github.com/ocornut/imgui.git#ce0d0ac8298ce164b5d862577e8b087d92f6e90e",
         },
         .lunasvg = .{
             .hash = "122079db91cf4c0ed8d21659678c4299f55dadbb6a89020f25a49468485b19e2fe6b",
-            .url = "https://github.com/sammycage/lunasvg/archive/610b8bf5148a27489b4e3344b4f5617b81be38c7.tar.gz",
+            .url = "git+https://github.com/sammycage/lunasvg.git#610b8bf5148a27489b4e3344b4f5617b81be38c7",
         },
     },
     .paths = .{
