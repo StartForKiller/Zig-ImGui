@@ -11,9 +11,9 @@ TYPEDEFS_JSON_FILE = os.environ.get('TYPEDEFS_JSON_FILE', 'cimgui/generator/outp
 COMMANDS_JSON_FILE = os.environ.get('COMMANDS_JSON_FILE', 'cimgui/generator/output/definitions.json')
 IMPL_JSON_FILE = os.environ.get('IMPL_JSON_FILE', 'cimgui/generator/output/definitions_impl.json')
 
-OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'zig-imgui')
+OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'src/generated/')
 OUTPUT_FILE = os.environ.get('OUTPUT_FILE', 'imgui.zig')
-TEMPLATE_FILE = os.environ.get('TEMPLATE_FILE','template.zig')
+TEMPLATE_FILE = os.environ.get('TEMPLATE_FILE','src/template.zig')
 
 function_name_whitelist = { 'ImGuiFreeType_GetBuilderForFreeType', 'ImGuiFreeType_SetAllocatorFunctions' }
 

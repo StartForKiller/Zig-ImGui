@@ -45,7 +45,7 @@ fn create_generation_step(
 
     const fix_tool = b.addExecutable(.{
         .name = "fix_cimgui_sources",
-        .root_source_file = .{ .path = "src/fix_generated_sources.zig" },
+        .root_source_file = .{ .path = "src/generator/fixup_generated_cimgui.zig" },
         .target = b.host,
     });
     const fix_step = b.addRunArtifact(fix_tool);
@@ -56,16 +56,16 @@ fn create_generation_step(
     write_step.step.dependOn(&fix_step.step);
     write_step.addCopyFileToSource(
         .{ .cwd_relative = cimgui_dep.path("cimgui.cpp").getPath(b) },
-        "src/cimgui.cpp"
+        "src/generated/cimgui.cpp"
     );
     write_step.addCopyFileToSource(
         .{ .cwd_relative = cimgui_dep.path("cimgui.h").getPath(b) },
-        "src/cimgui.h"
+        "src/generated/cimgui.h"
     );
 
     const python_generate_command = b.addSystemCommand(&.{
         python_path,
-        b.pathFromRoot("generate.py"),
+        b.pathFromRoot("src/generator/generate.py"),
     });
     python_generate_command.step.dependOn(&write_step.step);
     python_generate_command.setEnvironmentVariable("STRUCT_JSON_FILE", b.pathJoin(&.{
@@ -147,7 +147,7 @@ pub fn build(b: *std.Build) !void {
     }
 
     const imgui_sources: []const std.Build.LazyPath = &.{
-        .{ .path = "src/cimgui.cpp" },
+        .{ .path = "src/generated/cimgui.cpp" },
         imgui_dep.path("imgui.cpp"),
         imgui_dep.path("imgui_demo.cpp"),
         imgui_dep.path("imgui_draw.cpp"),
@@ -158,7 +158,7 @@ pub fn build(b: *std.Build) !void {
     for (IMGUI_C_DEFINES) |c_define| {
         cimgui.root_module.addCMacro(c_define[0], c_define[1]);
     }
-    cimgui.addIncludePath(.{ .path = "src/" });
+    cimgui.addIncludePath(.{ .path = "src/generated/" });
     cimgui.addIncludePath(imgui_dep.path("."));
     for (imgui_sources) |file| {
         cimgui.addCSourceFile(.{
@@ -229,14 +229,14 @@ pub fn build(b: *std.Build) !void {
 
         cimgui.addIncludePath(imgui_dep.path("misc/freetype"));
         cimgui.addCSourceFile(.{
-            .file = .{ .path = "src/imgui_freetype.cpp" },
+            .file = .{ .path = "src/generated/imgui_freetype.cpp" },
             .flags = IMGUI_C_FLAGS,
         });
     }
     b.installArtifact(cimgui);
 
     const zig_imgui = b.addModule("Zig-ImGui", .{
-        .root_source_file = .{ .path = "src/imgui.zig" },
+        .root_source_file = .{ .path = "src/generated/imgui.zig" },
         .target = target,
         .optimize = optimize,
     });
