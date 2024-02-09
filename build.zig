@@ -45,7 +45,7 @@ fn create_generation_step(
 
     const fix_tool = b.addExecutable(.{
         .name = "fix_cimgui_sources",
-        .root_source_file = .{ .path = "zig-imgui/fix_generated_sources.zig" },
+        .root_source_file = .{ .path = "src/fix_generated_sources.zig" },
         .target = b.host,
     });
     const fix_step = b.addRunArtifact(fix_tool);
@@ -56,11 +56,11 @@ fn create_generation_step(
     write_step.step.dependOn(&fix_step.step);
     write_step.addCopyFileToSource(
         .{ .cwd_relative = cimgui_dep.path("cimgui.cpp").getPath(b) },
-        "zig-imgui/cimgui.cpp"
+        "src/cimgui.cpp"
     );
     write_step.addCopyFileToSource(
         .{ .cwd_relative = cimgui_dep.path("cimgui.h").getPath(b) },
-        "zig-imgui/cimgui.h"
+        "src/cimgui.h"
     );
 
     const python_generate_command = b.addSystemCommand(&.{
@@ -147,7 +147,7 @@ pub fn build(b: *std.Build) !void {
     }
 
     const imgui_sources: []const std.Build.LazyPath = &.{
-        .{ .path = "zig-imgui/cimgui.cpp" },
+        .{ .path = "src/cimgui.cpp" },
         imgui_dep.path("imgui.cpp"),
         imgui_dep.path("imgui_demo.cpp"),
         imgui_dep.path("imgui_draw.cpp"),
@@ -158,7 +158,7 @@ pub fn build(b: *std.Build) !void {
     for (IMGUI_C_DEFINES) |c_define| {
         cimgui.root_module.addCMacro(c_define[0], c_define[1]);
     }
-    cimgui.addIncludePath(.{ .path = "zig-imgui/" });
+    cimgui.addIncludePath(.{ .path = "src/" });
     cimgui.addIncludePath(imgui_dep.path("."));
     for (imgui_sources) |file| {
         cimgui.addCSourceFile(.{
@@ -229,21 +229,21 @@ pub fn build(b: *std.Build) !void {
 
         cimgui.addIncludePath(imgui_dep.path("misc/freetype"));
         cimgui.addCSourceFile(.{
-            .file = .{ .path = "zig-imgui/imgui_freetype.cpp" },
+            .file = .{ .path = "src/imgui_freetype.cpp" },
             .flags = IMGUI_C_FLAGS,
         });
     }
     b.installArtifact(cimgui);
 
     const zig_imgui = b.addModule("Zig-ImGui", .{
-        .root_source_file = .{ .path = "zig-imgui/imgui.zig" },
+        .root_source_file = .{ .path = "src/imgui.zig" },
         .target = target,
         .optimize = optimize,
     });
     zig_imgui.linkLibrary(cimgui);
 
     const test_exe = b.addTest(.{
-        .root_source_file = .{ .path = "zig-imgui/tests.zig" },
+        .root_source_file = .{ .path = "src/tests.zig" },
         .target = target,
         .optimize = optimize,
     });
