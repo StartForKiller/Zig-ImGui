@@ -1,6 +1,6 @@
 //! ==========================================================
-//! This file is generated from template.zig and generate.bat.
-//! Do not modify it by hand.
+//! This file is generated from template.zig and the
+//! `zig build generate` build step. Do not modify it by hand.
 //! ==========================================================
 
 const std = @import("std");
@@ -10,7 +10,7 @@ const imgui = @This();
 
 pub const DrawCallback_ResetRenderState: DrawCallback = null;
 
-pub const VERSION = "1.90.0";
+pub const VERSION = "1.90.1";
 pub fn CHECKVERSION() void {
     if (builtin.mode != .ReleaseFast) {
         assert(raw.igDebugCheckVersionAndDataLayout(VERSION, @sizeOf(IO), @sizeOf(Style), @sizeOf(Vec2), @sizeOf(Vec4), @sizeOf(DrawVert), @sizeOf(DrawIdx)));

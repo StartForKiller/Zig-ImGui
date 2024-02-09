@@ -68,6 +68,7 @@ fn create_generation_step(
         b.pathFromRoot("src/generator/generate.py"),
     });
     python_generate_command.step.dependOn(&write_step.step);
+    python_generate_command.setEnvironmentVariable("PYTHONDONTWRITEBYTECODE", "1");
     python_generate_command.setEnvironmentVariable("STRUCT_JSON_FILE", b.pathJoin(&.{
         cimgui_generator_path,
         "output",
