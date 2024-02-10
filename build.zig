@@ -19,8 +19,8 @@ fn create_generation_step(
     cimgui_dep: *std.Build.Dependency,
     imgui_dep: *std.Build.Dependency,
 ) !*std.Build.Step {
-    // luajit is necessary to run the cimgui generator script
-    const lua_path = try b.findProgram(&.{ "luajit" }, &.{});
+    // lua is necessary to run the cimgui generator script
+    const lua_path = try b.findProgram(&.{ "luajit", "lua5.1" }, &.{});
 
     // hopefully, this can be replaced by a rewrite in zig in the future, until
     // then, a python installation is necessary to generate the bindings
@@ -32,11 +32,7 @@ fn create_generation_step(
     const cimgui_generate_command = b.addSystemCommand(&.{
         lua_path,
         b.pathJoin(&.{ cimgui_generator_path, "generator.lua" }),
-        // unfortunately, the cimgui generator script doesn't give the option
-        // to provide a full path to a compiler, and instead it accepts the
-        // exact strings "gcc", "clang", "cl", or "zig cc", which it will then
-        // look for in $PATH
-        "zig cc",
+        b.fmt("{s} cc", .{ b.zig_exe }),
         "freetype",
         "-DIMGUI_ENABLE_STB_TRUETYPE -DIMGUI_USE_WCHAR32",
     });
@@ -130,7 +126,7 @@ pub fn build(b: *std.Build) !void {
     const cli_generate_step = b.step(
         "generate",
         "Generate cimgui and zig bindings for imgui. " ++
-        "Requires that luajit/lua and python/python3 are available in $PATH",
+        "Requires that luajit/lua5.1 and python/python3 are available in $PATH",
     );
     cli_generate_step.dependOn(gen_step);
 

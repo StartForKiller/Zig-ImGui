@@ -3,8 +3,8 @@
     .version = "1.90.1",
     .dependencies = .{
         .cimgui = .{
-            .hash = "1220d2a053494548c6d1b4f5e827c61b11d73ea0b87a286722c55407e63c8b2df3c0",
-            .url = "git+https://github.com/cimgui/cimgui.git#04961a999e4cee4fde34d5df58383353f409d007"
+            .hash = "1220ccbc4af91e50b9d317e781b0b8e670e5aa9bbc6a6fabbd66c1f8c2511069550d",
+            .url = "git+https://gitlab.com/joshua.software.dev/cimgui.git#d7ffff8cf3599bf252ef1022df4d546ffd051866"
         },
         .freetype = .{
             .hash = "12208c57b72e3fb5c8d5d3e667e2e21ca1d9e2b6fc3f84182b320f63933f591823da",
