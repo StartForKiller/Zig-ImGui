@@ -18,9 +18,14 @@ fn create_generation_step(
     b: *std.Build,
     cimgui_dep: *std.Build.Dependency,
     imgui_dep: *std.Build.Dependency,
+    lua51_dep: *std.Build.Dependency,
 ) !*std.Build.Step {
-    // lua is necessary to run the cimgui generator script
-    const lua_path = try b.findProgram(&.{ "luajit", "lua5.1" }, &.{});
+    // use system lua if available to run the cimgui generator script
+    const lua_path: ?[]const u8 = b.findProgram(&.{ "luajit", "lua5.1" }, &.{})
+        catch |err| switch (err) {
+            error.FileNotFound => null,
+            else => return err,
+        };
 
     // hopefully, this can be replaced by a rewrite in zig in the future, until
     // then, a python installation is necessary to generate the bindings
@@ -29,8 +34,12 @@ fn create_generation_step(
     const cimgui_generator_lazypath = cimgui_dep.path("generator/");
     const cimgui_generator_path = cimgui_generator_lazypath.getPath(b);
 
-    const cimgui_generate_command = b.addSystemCommand(&.{
-        lua_path,
+    const cimgui_generate_command =
+        if (lua_path) |path|
+            b.addSystemCommand(&.{ path })
+        else
+            b.addRunArtifact(lua51_dep.artifact("lua5.1"));
+    cimgui_generate_command.addArgs(&.{
         b.pathJoin(&.{ cimgui_generator_path, "generator.lua" }),
         b.fmt("{s} cc", .{ b.zig_exe }),
         "freetype",
@@ -116,13 +125,14 @@ pub fn build(b: *std.Build) !void {
         else
             null;
     const imgui_dep = b.dependency("imgui", .{ .target = target, .optimize = optimize });
+    const lua51_dep = b.dependency("lua51", .{ .target = b.host, .optimize = .ReleaseFast });
     const lunasvg_dep: ?*std.Build.Dependency =
         if (enable_freetype)
             b.dependency("lunasvg", .{ .target = target, .optimize = optimize })
         else
             null;
 
-    const gen_step = try create_generation_step(b, cimgui_dep, imgui_dep);
+    const gen_step = try create_generation_step(b, cimgui_dep, imgui_dep, lua51_dep);
     const cli_generate_step = b.step(
         "generate",
         "Generate cimgui and zig bindings for imgui. " ++
