@@ -19,6 +19,7 @@ fn create_generation_step(
     cimgui_dep: *std.Build.Dependency,
     imgui_dep: *std.Build.Dependency,
     lua51_dep: *std.Build.Dependency,
+    RustPython_dep: *std.Build.Dependency,
 ) !*std.Build.Step {
     // use system lua if available to run the cimgui generator script
     const lua_path: ?[]const u8 = b.findProgram(&.{ "luajit", "lua5.1" }, &.{})
@@ -28,8 +29,12 @@ fn create_generation_step(
         };
 
     // hopefully, this can be replaced by a rewrite in zig in the future, until
-    // then, a python installation is necessary to generate the bindings
-    const python_path = try b.findProgram(&.{ "python", "python3" }, &.{});
+    // then, python is necessary to generate the bindings
+    const python_path: ?[]const u8 = b.findProgram(&.{ "python", "python3" }, &.{})
+        catch |err| switch (err) {
+            error.FileNotFound => null,
+            else => return err,
+        };
 
     const cimgui_generator_lazypath = cimgui_dep.path("generator/");
     const cimgui_generator_path = cimgui_generator_lazypath.getPath(b);
@@ -68,11 +73,13 @@ fn create_generation_step(
         "src/generated/cimgui.h"
     );
 
-    const python_generate_command = b.addSystemCommand(&.{
-        python_path,
-        b.pathFromRoot("src/generator/generate.py"),
-    });
+    const python_generate_command =
+        if (python_path) |path|
+            b.addSystemCommand(&.{ path })
+        else
+            b.addRunArtifact(RustPython_dep.artifact("RustPython"));
     python_generate_command.step.dependOn(&write_step.step);
+    python_generate_command.addArg(b.pathFromRoot("src/generator/generate.py"));
     python_generate_command.setEnvironmentVariable("PYTHONDONTWRITEBYTECODE", "1");
     python_generate_command.setEnvironmentVariable("STRUCT_JSON_FILE", b.pathJoin(&.{
         cimgui_generator_path,
@@ -131,12 +138,12 @@ pub fn build(b: *std.Build) !void {
             b.dependency("lunasvg", .{ .target = target, .optimize = optimize })
         else
             null;
+    const RustPython_dep = b.dependency("RustPython", .{ .target = b.host, .optimize = .ReleaseFast });
 
-    const gen_step = try create_generation_step(b, cimgui_dep, imgui_dep, lua51_dep);
+    const gen_step = try create_generation_step(b, cimgui_dep, imgui_dep, lua51_dep, RustPython_dep);
     const cli_generate_step = b.step(
         "generate",
-        "Generate cimgui and zig bindings for imgui. " ++
-        "Requires that luajit/lua5.1 and python/python3 are available in $PATH",
+        "Generate cimgui and zig bindings for Dear ImGui.",
     );
     cli_generate_step.dependOn(gen_step);
 
