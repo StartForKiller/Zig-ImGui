@@ -19,7 +19,7 @@ fn create_generation_step(
     cimgui_dep: *std.Build.Dependency,
     imgui_dep: *std.Build.Dependency,
     lua51_dep: *std.Build.Dependency,
-    RustPython_dep: *std.Build.Dependency,
+    python_w2c2zig_dep: *std.Build.Dependency,
 ) !*std.Build.Step {
     // use system lua if available to run the cimgui generator script
     const lua_path: ?[]const u8 = b.findProgram(&.{ "luajit", "lua5.1" }, &.{})
@@ -77,20 +77,10 @@ fn create_generation_step(
         if (python_path) |path|
             b.addSystemCommand(&.{ path })
         else
-            b.addRunArtifact(RustPython_dep.artifact("RustPython"));
+            b.addRunArtifact(python_w2c2zig_dep.artifact("CPython"));
     python_generate_command.step.dependOn(&write_step.step);
     python_generate_command.addArg(b.pathFromRoot("src/generator/generate.py"));
     python_generate_command.setEnvironmentVariable("PYTHONDONTWRITEBYTECODE", "1");
-    python_generate_command.setEnvironmentVariable("STRUCT_JSON_FILE", b.pathJoin(&.{
-        cimgui_generator_path,
-        "output",
-        "structs_and_enums.json",
-    }));
-    python_generate_command.setEnvironmentVariable("TYPEDEFS_JSON_FILE", b.pathJoin(&.{
-        cimgui_generator_path,
-        "output",
-        "typedefs_dict.json",
-    }));
     python_generate_command.setEnvironmentVariable("COMMANDS_JSON_FILE", b.pathJoin(&.{
         cimgui_generator_path,
         "output",
@@ -101,6 +91,18 @@ fn create_generation_step(
         "output",
         "definitions_impl.json",
     }));
+    python_generate_command.setEnvironmentVariable("STRUCT_JSON_FILE", b.pathJoin(&.{
+        cimgui_generator_path,
+        "output",
+        "structs_and_enums.json",
+    }));
+    python_generate_command.setEnvironmentVariable("TYPEDEFS_JSON_FILE", b.pathJoin(&.{
+        cimgui_generator_path,
+        "output",
+        "typedefs_dict.json",
+    }));
+    python_generate_command.setEnvironmentVariable("OUTPUT_PATH", b.pathFromRoot("src/generated/imgui.zig"));
+    python_generate_command.setEnvironmentVariable("TEMPLATE_FILE", b.pathFromRoot("src/template.zig"));
 
     return &python_generate_command.step;
 }
@@ -138,9 +140,9 @@ pub fn build(b: *std.Build) !void {
             b.dependency("lunasvg", .{ .target = target, .optimize = optimize })
         else
             null;
-    const RustPython_dep = b.dependency("RustPython", .{ .target = b.host, .optimize = .ReleaseFast });
+    const python_w2c2zig_dep = b.dependency("python_w2c2zig", .{ .target = b.host, .optimize = .ReleaseFast });
 
-    const gen_step = try create_generation_step(b, cimgui_dep, imgui_dep, lua51_dep, RustPython_dep);
+    const gen_step = try create_generation_step(b, cimgui_dep, imgui_dep, lua51_dep, python_w2c2zig_dep);
     const cli_generate_step = b.step(
         "generate",
         "Generate cimgui and zig bindings for Dear ImGui.",

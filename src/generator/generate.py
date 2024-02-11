@@ -6,13 +6,12 @@ if sys.version_info[0] != 3:
     print ("Error: This script requires python 3, current version is"), (sys.version)
     sys.exit(1)
 
-STRUCT_JSON_FILE = os.environ.get('STRUCT_JSON_FILE', 'cimgui/generator/output/structs_and_enums.json')
-TYPEDEFS_JSON_FILE = os.environ.get('TYPEDEFS_JSON_FILE', 'cimgui/generator/output/typedefs_dict.json')
 COMMANDS_JSON_FILE = os.environ.get('COMMANDS_JSON_FILE', 'cimgui/generator/output/definitions.json')
 IMPL_JSON_FILE = os.environ.get('IMPL_JSON_FILE', 'cimgui/generator/output/definitions_impl.json')
+STRUCT_JSON_FILE = os.environ.get('STRUCT_JSON_FILE', 'cimgui/generator/output/structs_and_enums.json')
+TYPEDEFS_JSON_FILE = os.environ.get('TYPEDEFS_JSON_FILE', 'cimgui/generator/output/typedefs_dict.json')
 
-OUTPUT_DIR = os.environ.get('OUTPUT_DIR', 'src/generated/')
-OUTPUT_FILE = os.environ.get('OUTPUT_FILE', 'imgui.zig')
+OUTPUT_PATH = os.environ.get('OUTPUT_PATH', 'src/generated/imgui.zig')
 TEMPLATE_FILE = os.environ.get('TEMPLATE_FILE','src/template.zig')
 
 function_name_whitelist = { 'ImGuiFreeType_GetBuilderForFreeType', 'ImGuiFreeType_SetAllocatorFunctions' }
@@ -20,7 +19,6 @@ function_name_whitelist = { 'ImGuiFreeType_GetBuilderForFreeType', 'ImGuiFreeTyp
 import json
 from collections import namedtuple
 from collections import defaultdict
-from os import makedirs
 from pointer_rules import *
 
 typeConversions = {
@@ -699,8 +697,8 @@ if __name__ == '__main__':
     del data.structures['ImColor']
     del data.typedefs['ImTextureID']
 
-    makedirs(OUTPUT_DIR, exist_ok=True)
-    with open(OUTPUT_DIR+'/'+OUTPUT_FILE, "w", newline='\n') as f:
+    os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
+    with open(OUTPUT_PATH, "w+", newline='\n') as f:
         data.writeFile(f)
 
     warnForUnusedRules()

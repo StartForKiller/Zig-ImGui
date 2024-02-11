@@ -22,9 +22,9 @@
             .hash = "122079db91cf4c0ed8d21659678c4299f55dadbb6a89020f25a49468485b19e2fe6b",
             .url = "git+https://github.com/sammycage/lunasvg.git#610b8bf5148a27489b4e3344b4f5617b81be38c7",
         },
-        .RustPython = .{
-            .hash = "1220bc47f55ea4ac2aa6784d30aa247ccf5710d2af230dee14e46d6b5b2905e7ed0c",
-            .url = "git+https://codeberg.org/joshua-software-dev/RustPython_w2c2zig.git#01fc2e83e9bf6da222f769d0ea33e7177adeed1b",
+        .python_w2c2zig = .{
+            .hash = "12209a63300bb2a1d6e1353f2e909669229ff9f2612049827a871768290b0c811fc3",
+            .url = "git+https://codeberg.org/joshua-software-dev/python_w2c2zig.git#f877219bc9386f1646ba12971b426b9961e18535",
         },
     },
     .paths = .{
