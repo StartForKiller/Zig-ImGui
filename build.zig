@@ -79,30 +79,95 @@ fn create_generation_step(
         else
             b.addRunArtifact(python_w2c2zig_dep.artifact("CPython"));
     python_generate_command.step.dependOn(&write_step.step);
-    python_generate_command.addArg(b.pathFromRoot("src/generator/generate.py"));
     python_generate_command.setEnvironmentVariable("PYTHONDONTWRITEBYTECODE", "1");
-    python_generate_command.setEnvironmentVariable("COMMANDS_JSON_FILE", b.pathJoin(&.{
-        cimgui_generator_path,
-        "output",
-        "definitions.json",
-    }));
-    python_generate_command.setEnvironmentVariable("IMPL_JSON_FILE", b.pathJoin(&.{
-        cimgui_generator_path,
-        "output",
-        "definitions_impl.json",
-    }));
-    python_generate_command.setEnvironmentVariable("STRUCT_JSON_FILE", b.pathJoin(&.{
-        cimgui_generator_path,
-        "output",
-        "structs_and_enums.json",
-    }));
-    python_generate_command.setEnvironmentVariable("TYPEDEFS_JSON_FILE", b.pathJoin(&.{
-        cimgui_generator_path,
-        "output",
-        "typedefs_dict.json",
-    }));
-    python_generate_command.setEnvironmentVariable("OUTPUT_PATH", b.pathFromRoot("src/generated/imgui.zig"));
-    python_generate_command.setEnvironmentVariable("TEMPLATE_FILE", b.pathFromRoot("src/template.zig"));
+
+    var temp_path_arena = std.heap.ArenaAllocator.init(b.allocator);
+    defer temp_path_arena.deinit();
+
+    python_generate_command.addArg(
+        try std.fs.path.relative(
+            temp_path_arena.allocator(),
+            ".",
+            b.pathFromRoot("src/generator/generate.py"),
+        ),
+    );
+    _ = temp_path_arena.reset(.free_all);
+
+    python_generate_command.setEnvironmentVariable(
+        "COMMANDS_JSON_FILE",
+        try std.fs.path.relative(
+            temp_path_arena.allocator(),
+            ".",
+            b.pathJoin(&.{
+                cimgui_generator_path,
+                "output",
+                "definitions.json",
+            }),
+        ),
+    );
+    _ = temp_path_arena.reset(.free_all);
+
+    python_generate_command.setEnvironmentVariable(
+        "IMPL_JSON_FILE",
+        try std.fs.path.relative(
+            temp_path_arena.allocator(),
+            ".",
+            b.pathJoin(&.{
+                cimgui_generator_path,
+                "output",
+                "definitions_impl.json",
+            }),
+        ),
+    );
+    _ = temp_path_arena.reset(.free_all);
+
+    python_generate_command.setEnvironmentVariable(
+        "OUTPUT_PATH",
+        try std.fs.path.relative(
+            temp_path_arena.allocator(),
+            ".",
+            b.pathFromRoot("src/generated/imgui.zig"),
+        ),
+    );
+    _ = temp_path_arena.reset(.free_all);
+
+    python_generate_command.setEnvironmentVariable(
+        "STRUCT_JSON_FILE",
+        try std.fs.path.relative(
+            temp_path_arena.allocator(),
+            ".",
+            b.pathJoin(&.{
+                cimgui_generator_path,
+                "output",
+                "structs_and_enums.json",
+            }),
+        ),
+    );
+    _ = temp_path_arena.reset(.free_all);
+
+    python_generate_command.setEnvironmentVariable(
+        "TEMPLATE_FILE",
+        try std.fs.path.relative(
+            temp_path_arena.allocator(),
+            ".",
+            b.pathFromRoot("src/template.zig"),
+        ),
+    );
+    _ = temp_path_arena.reset(.free_all);
+
+    python_generate_command.setEnvironmentVariable(
+        "TYPEDEFS_JSON_FILE",
+        try std.fs.path.relative(
+            temp_path_arena.allocator(),
+            ".",
+            b.pathJoin(&.{
+                cimgui_generator_path,
+                "output",
+                "typedefs_dict.json",
+            }),
+        ),
+    );
+    _ = temp_path_arena.reset(.free_all);
 
     return &python_generate_command.step;
 }
