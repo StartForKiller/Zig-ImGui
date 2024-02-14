@@ -23,8 +23,8 @@
             .url = "git+https://github.com/sammycage/lunasvg.git#610b8bf5148a27489b4e3344b4f5617b81be38c7",
         },
         .python_w2c2zig = .{
-            .hash = "12209a63300bb2a1d6e1353f2e909669229ff9f2612049827a871768290b0c811fc3",
-            .url = "git+https://codeberg.org/joshua-software-dev/python_w2c2zig.git#f877219bc9386f1646ba12971b426b9961e18535",
+            .hash = "1220eb9edfa3fac2d7f09e34eeb5cd482aef8ce11f75b8bfbc85b74f4e1a75781cee",
+            .url = "git+https://codeberg.org/joshua-software-dev/python_w2c2zig.git#26df189bfea7b405ac5dd1cfe71017b56bd090eb",
         },
     },
     .paths = .{
