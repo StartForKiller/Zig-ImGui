@@ -1,5 +1,41 @@
 const std = @import("std");
 
+
+fn read_all_posix_line_endings(input_reader: std.io.AnyReader, output: *std.ArrayList(u8)) !void {
+    var buf = std.io.bufferedReader(input_reader);
+    var reader = buf.reader();
+
+    while (true) {
+        const b1 = reader.readByte()
+            catch |err| switch (err) {
+                error.EndOfStream => return,
+                else => return err,
+            };
+
+        switch (b1) {
+            '\r' => {
+                const b2 = reader.readByte()
+                    catch |err| switch (err) {
+                        error.EndOfStream => {
+                            try output.append(b1);
+                            return;
+                        },
+                        else => return err,
+                    };
+
+                switch (b2) {
+                    '\n' => try output.append('\n'),
+                    else => {
+                        try output.append(b1);
+                        try output.append(b2);
+                    }
+                }
+            },
+            else => try output.append(b1),
+        }
+    }
+}
+
 fn fix_cpp(allocator: std.mem.Allocator, input_folder: []const u8) !void {
     const path = try std.fs.path.join(allocator, &.{
         input_folder,
@@ -12,7 +48,7 @@ fn fix_cpp(allocator: std.mem.Allocator, input_folder: []const u8) !void {
 
     var cpp_contents = std.ArrayList(u8).init(allocator);
     defer cpp_contents.deinit();
-    try file.reader().readAllArrayList(&cpp_contents, std.math.maxInt(usize));
+    try read_all_posix_line_endings(file.reader().any(), &cpp_contents);
 
     const bad_define_text = "#define IMGUI_ENABLE_FREETYPE\n";
     const bad_define_text_start_pos = std.mem.indexOf(u8, cpp_contents.items, bad_define_text)
@@ -72,7 +108,7 @@ fn fix_h(allocator: std.mem.Allocator, input_folder: []const u8) !void {
 
     var h_contents = std.ArrayList(u8).init(allocator);
     defer h_contents.deinit();
-    try file.reader().readAllArrayList(&h_contents, std.math.maxInt(usize));
+    try read_all_posix_line_endings(file.reader().any(), &h_contents);
 
     const bad_typing_text = "typedef void* ImTextureID;";
     const bad_typing_text_start_pos = std.mem.indexOf(u8, h_contents.items, bad_typing_text)
