@@ -9,18 +9,21 @@ pub const ImGui_ImplVulkan_InitInfo = extern struct {
     device: vk.Device,
     queue_family: u32,
     queue: vk.Queue,
-    pipeline_cache: vk.PipelineCache,
     descriptor_pool: vk.DescriptorPool,
-    subpass: u32,
+    render_pass: vk.RenderPass,
     min_image_count: u32,
     image_count: u32,
     msaa_samples: vk.SampleCountFlags,
 
-    // Dynamic Rendering (Optional)
-    use_dynamic_rendering: bool,
-    color_attachment_format: vk.Format,
+    // (Optional)
+    pipeline_cache: vk.PipelineCache,
+    subpass: u32,
 
-    // Allocation, Debugging
+    // (Optional) Dynamic Rendering
+    use_dynamic_rendering: bool,
+    pipeline_rendering_create_info: vk.PipelineRenderingCreateInfo,
+
+    // (Optional) Allocation, Debugging
     allocator: ?*const vk.AllocationCallbacks,
     check_vk_result_fn_ptr: ?*const fn (vk.Result) callconv(.C) void,
     min_allocation_size: vk.DeviceSize,
@@ -54,12 +57,13 @@ pub const ImGui_ImplVulkanH_Window = extern struct {
     clear_value: vk.ClearValue,
     frame_index: u32,
     image_count: u32,
+    semaphore_count: u32,
     semaphore_index: u32,
     frames: ?[*]ImGui_ImplVulkanH_Frame,
     frames_semaphores: ?[*]ImGui_ImplVulkanH_FrameSemaphores,
 };
 
-pub extern fn ImGui_ImplVulkan_Init(info: *ImGui_ImplVulkan_InitInfo, render_pass: vk.RenderPass) bool;
+pub extern fn ImGui_ImplVulkan_Init(info: *ImGui_ImplVulkan_InitInfo) bool;
 pub extern fn ImGui_ImplVulkan_Shutdown() void;
 pub extern fn ImGui_ImplVulkan_NewFrame() void;
 pub extern fn ImGui_ImplVulkan_RenderDrawData(draw_data: *const zimgui.DrawData, command_buffer: vk.CommandBuffer, pipeline: vk.Pipeline) void;

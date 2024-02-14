@@ -66,7 +66,7 @@ fn setup_vulkan_select_physical_device(allocator: std.mem.Allocator, instance: v
     }
 
     // Use first GPU (Integrated) is a Discrete one is not available.
-    if (gpus.len >= 1) {
+    if (gpus.len > 0) {
         return gpus[0];
     }
     return .null_handle;
@@ -246,15 +246,17 @@ fn setup_vulkan(allocator: std.mem.Allocator) !imgui_vk.ImGui_ImplVulkan_InitInf
         .device = device,
         .queue_family = queue_family_index,
         .queue = device_queue,
-        .pipeline_cache = .null_handle,
         .descriptor_pool = descriptor_pool,
-        .subpass = 0,
+        .render_pass = .null_handle,
         .min_image_count = MIN_IMAGE_COUNT,
         .image_count = 0,
         .msaa_samples = .{ .@"1_bit" = true },
 
+        .pipeline_cache = .null_handle,
+        .subpass = 0,
+
         .use_dynamic_rendering = false,
-        .color_attachment_format = .undefined,
+        .pipeline_rendering_create_info = undefined,
 
         .allocator = null,
         .check_vk_result_fn_ptr = &check_vk_result,
@@ -424,7 +426,7 @@ fn frame_present(wd: *imgui_vk.ImGui_ImplVulkanH_Window, queue: vk.Queue) !Swapc
     if (result == .suboptimal_khr) return .rebuild_swapchain;
 
     // Now we can use the next set of semaphores
-    wd.semaphore_index = (wd.semaphore_index + 1) % wd.image_count;
+    wd.semaphore_index = (wd.semaphore_index + 1) % wd.semaphore_count;
     return .reuse_swapchain;
 }
 
@@ -521,6 +523,7 @@ pub fn main() !u8 {
         break :blk try setup_vulkan_window(init_info, surface, fb_size.width, fb_size.height);
     };
     init_info.image_count = wd.image_count;
+    init_info.render_pass = wd.render_pass;
 
     // Setup Dear ImGui context
     const im_context = zimgui.CreateContext();
@@ -540,7 +543,7 @@ pub fn main() !u8 {
 
     // Setup Platfrom/Renderer backends
     _ = imgui_glfw.ImGui_ImplGlfw_InitForVulkan(window.handle, true);
-    _ = imgui_vk.ImGui_ImplVulkan_Init(&init_info, wd.render_pass);
+    _ = imgui_vk.ImGui_ImplVulkan_Init(&init_info);
 
     // INSERT LOAD FONTS HERE
 
