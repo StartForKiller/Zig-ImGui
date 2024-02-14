@@ -2,9 +2,9 @@
 
 Zig-ImGui uses [cimgui](https://github.com/cimgui/cimgui) to generate [Zig](https://github.com/ziglang/zig) bindings for [Dear ImGui](https://github.com/ocornut/imgui).
 
-It is currently up to date with [Dear ImGui v1.90.1](https://github.com/ocornut/imgui/releases/tag/v1.90.1).
+It is currently up to date with [Dear ImGui v1.90.3](https://github.com/ocornut/imgui/releases/tag/v1.90.3).
 
-At the time of writing, Zig-ImGui supports zig `0.12.0-dev.2341+42389cb9c`
+At the time of writing, Zig-ImGui has been validated against zig `0.12.0-dev.2341+42389cb9c`
 
 ## Using the pre-generated bindings
 
@@ -84,12 +84,12 @@ Zig-ImGui strives to be easy to use.  To use the pre-generated bindings, do the 
     my_static_lib.root_module.addImport("Zig-ImGui", ZigImGui_dep.module("Zig-ImGui"));
     ```
 - In your project, use `@import("Zig-ImGui")` to obtain the bindings.
-- For more detailed documentation, see the [official ImGui documentation](https://github.com/ocornut/imgui/tree/v1.90/docs).
+- For more detailed documentation, see the [official ImGui documentation](https://github.com/ocornut/imgui/tree/v1.90.3-docking/docs).
 - For an example of using these bindings, see [the included examples](https://gitlab.com/joshua.software.dev/Zig-ImGui/-/tree/master/examples/) or for a real project see [joshua-software-dev/AthenaOverlay](https://codeberg.org/joshua-software-dev/AthenaOverlay).
 
-## Using the ImGui Backends
+## Using the Dear ImGui Backends
 
-ImGui contains a number of [BACKENDS](https://github.com/ocornut/imgui/blob/master/docs/BACKENDS.md) that provide easier setup and abstraction of underlying platforms to lower the amount of work necessary to facilitate using it. Zig-ImGui does not compile these automatically, and you'll need to include the ones you want to use in your build manually. For example, to use the `imgui_impl_opengl3` backend:
+Dear ImGui contains a number of [BACKENDS](https://github.com/ocornut/imgui/blob/master/docs/BACKENDS.md) that provide easier setup and abstraction of underlying platforms to lower the amount of work necessary to facilitate using it. Zig-ImGui does not compile these automatically, and you'll need to include the ones you want to use in your build manually. For example, to use the `imgui_impl_opengl3` backend:
 
 ```zig
 // in your build.zig
@@ -197,7 +197,7 @@ pub fn main() !void {
 
 ## Binding style
 
-These bindings generally prefer the original ImGui naming styles over Zig style.  Functions, types, and fields match the casing of the original.  Prefixes like ImGui* or Im* have been stripped.  Enum names as prefixes to enum values have also been stripped.
+These bindings generally prefer the original Dear ImGui naming styles over Zig style.  Functions, types, and fields match the casing of the original.  Prefixes like ImGui* or Im* have been stripped.  Enum names as prefixes to enum values have also been stripped.
 
 "Flags" enums have been translated to packed structs of bools, with helper functions for performing bit operations.  ImGuiCond specifically has been translated to CondFlags to match the naming style of other flag enums.
 
@@ -219,22 +219,12 @@ fn SetWindowCollapsed_Bool(collapsed: bool) void;
 fn SetWindowCollapsed_BoolExt(collapsed: bool, cond: CondFlags) void;
 ```
 
-Nullability and array-ness of pointer parameters is hand-tuned by the logic in pointer_rules.py.  If you find any incorrect translations, please open an issue.
+Nullability and array-ness of pointer parameters is hand-tuned by the logic in generate.py.  If you find any incorrect translations, please open an issue.
 
 ## Generating new bindings
 
-To use a different version of Dear ImGui, new bindings need to be generated.
-You will need to do some setup for this:
+To use a different version of Dear ImGui, new bindings need to be generated. You can set your preferred version in Zig-ImGui's `build.zig.zon`, and then use the `zig build generate` command to do the necessary generation. It is preferable to have luajit or lua5.1 and python3 available in $PATH for the generation, but if they are not, the they will be built from source by the `build.zig` instead.
 
-- Download and install luajit, and add it to your path
-- Download and install gcc, through mingw or other means, and add it to your path
-- Download and install Python 3, and add it to your path
-
-Once you are set up, run `generate.bat` to attempt to generate the bindings.
-
-NOTE: `generate.bat` will revert any local changes in the cimgui submodule, so don't run it if you have any.
-
-Some changes to Dear ImGui may require more in-depth changes to generate correct bindings.
-You may need to check for updates to upstream cimgui, or add rules to pointer_rules.py.
+Some changes to Dear ImGui may require more in-depth changes to generate correct bindings. You may need to check for updates to upstream cimgui, or add rules to generate.py.
 
 You can do a quick check of the integrity of the bindings with `zig build test`.  This will verify that the version of Dear ImGui matches the bindings, and compile all wrapper functions in the bindings.

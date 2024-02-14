@@ -10,7 +10,7 @@ const imgui = @This();
 
 pub const DrawCallback_ResetRenderState: DrawCallback = null;
 
-pub const VERSION = "1.90.1";
+pub const VERSION = "1.90.3";
 pub fn CHECKVERSION() void {
     if (builtin.mode != .ReleaseFast) {
         assert(raw.igDebugCheckVersionAndDataLayout(VERSION, @sizeOf(IO), @sizeOf(Style), @sizeOf(Vec2), @sizeOf(Vec4), @sizeOf(DrawVert), @sizeOf(DrawIdx)));
@@ -1135,13 +1135,13 @@ pub const PopupFlags = packed struct {
     __reserved_bit_02: bool = false,
     __reserved_bit_03: bool = false,
     __reserved_bit_04: bool = false,
+    NoReopen: bool = false,
+    __reserved_bit_06: bool = false,
     NoOpenOverExistingPopup: bool = false,
     NoOpenOverItems: bool = false,
+    __reserved_bit_09: bool = false,
     AnyPopupId: bool = false,
     AnyPopupLevel: bool = false,
-    __reserved_bit_09: bool = false,
-    __reserved_bit_10: bool = false,
-    __reserved_bit_11: bool = false,
     __reserved_bit_12: bool = false,
     __reserved_bit_13: bool = false,
     __reserved_bit_14: bool = false,
@@ -2723,7 +2723,6 @@ pub const IO = extern struct {
     MetricsRenderWindows: i32,
     MetricsActiveWindows: i32,
     MouseDelta: Vec2,
-    _UnusedPadding: ?*anyopaque,
     Ctx: ?*Context,
     MousePos: Vec2,
     MouseDown: [5]bool,
@@ -3317,6 +3316,7 @@ pub const Viewport = extern struct {
 pub const WindowClass = extern struct {
     ClassId: ID,
     ParentViewportId: ID,
+    FocusRouteParentWindowId: ID,
     ViewportFlagsOverrideSet: ViewportFlags align(4),
     ViewportFlagsOverrideClear: ViewportFlags align(4),
     TabItemFlagsOverrideSet: TabItemFlags align(4),

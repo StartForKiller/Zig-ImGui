@@ -1,18 +1,18 @@
 .{
     .name = "Zig-ImGui",
-    .version = "1.90.1",
+    .version = "1.90.3",
     .dependencies = .{
         .cimgui = .{
             .hash = "1220ccbc4af91e50b9d317e781b0b8e670e5aa9bbc6a6fabbd66c1f8c2511069550d",
-            .url = "git+https://gitlab.com/joshua.software.dev/cimgui.git#d7ffff8cf3599bf252ef1022df4d546ffd051866"
+            .url = "git+https://gitlab.com/joshua.software.dev/cimgui.git#d7ffff8cf3599bf252ef1022df4d546ffd051866",
         },
         .freetype = .{
             .hash = "12208c57b72e3fb5c8d5d3e667e2e21ca1d9e2b6fc3f84182b320f63933f591823da",
             .url = "git+https://github.com/hexops/freetype.git#398638fd1cb723e478658ea371fe3be1a4dce0ae",
         },
         .imgui = .{
-            .hash = "1220feb98197770f4944e95bba4c1f2769ee06a205ba08b31b3b7ece728e8beea062",
-            .url = "git+https://github.com/ocornut/imgui.git#32a3c61d0001d75cdcf033015a1e27f1ea12c848",
+            .hash = "1220d0c1a0b86b59ae01e67a493b49ead3d9b42c6cff875f71d772ed9a7b09787adf",
+            .url = "git+https://github.com/ocornut/imgui.git#c66a1e7d51951dcb121aee1404a069ac6f8d84d5",
         },
         .lua51 = .{
             .hash = "122059ba40c43edb4ce357513e7c390314ea719e67e135eaebf9cfd4eb5ffc023763",
@@ -39,6 +39,7 @@
         "pointer_rules.py",
         "README.md",
         "template.zig",
+        "examples/",
         "third_party/",
         "zig-imgui/",
     },
