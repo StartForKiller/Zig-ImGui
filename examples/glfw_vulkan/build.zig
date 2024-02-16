@@ -97,11 +97,18 @@ fn create_imgui_vulkan_static_lib(
     return imgui_vulkan;
 }
 
+/// This function makes it easy to prefer using an install of glslang or glslc
+/// already installed on the system if it is available.
+///
 /// Note, that the run step returned has no arguments set, and they will need
 /// to be given to the step afterwards. Set `use_fallback` to false to prevent
 /// compiling glslangValidator from source if it not found in $PATH.
 fn get_shader_compiler(b: *std.Build, use_fallback: bool) !ShaderCompiler {
-    const maybe_glslang_path = b.findProgram(&.{ "glslang", "glslangValidator" }, &.{}) catch null;
+    const maybe_glslang_path = b.findProgram(&.{ "glslang", "glslangValidator" }, &.{})
+        catch |err| switch (err) {
+            error.FileNotFound => null,
+            else => return err,
+        };
     if (maybe_glslang_path) |glslang_path| {
         return .{
             .compiler_kind = .glslang,
@@ -109,7 +116,11 @@ fn get_shader_compiler(b: *std.Build, use_fallback: bool) !ShaderCompiler {
         };
     }
 
-    const maybe_glslc_path = b.findProgram(&.{ "glslc" }, &.{}) catch null;
+    const maybe_glslc_path = b.findProgram(&.{ "glslc" }, &.{})
+        catch |err| switch (err) {
+            error.FileNotFound => null,
+            else => return err,
+        };
     if (maybe_glslc_path) |glslc_path| {
         return .{
             .compiler_kind = .glslc,
@@ -243,9 +254,8 @@ pub fn build(b: *std.Build) !void {
     }
     compile_frag_step.run_step.addFileArg(.{ .path = "src/imgui.frag.glsl" });
     compile_frag_step.run_step.addArg("-o");
-    exe.root_module.addAnonymousImport("imgui.frag.spv", .{
-        .root_source_file = compile_frag_step.run_step.addOutputFileArg("imgui.frag.spv")
-    });
+    const frag_spv = compile_frag_step.run_step.addOutputFileArg("imgui.frag.spv");
+    exe.root_module.addAnonymousImport("imgui.frag.spv", .{ .root_source_file = frag_spv });
 
     const compile_vert_step = try get_shader_compiler(b, true);
     switch (compile_vert_step.compiler_kind) {
@@ -257,9 +267,8 @@ pub fn build(b: *std.Build) !void {
     }
     compile_vert_step.run_step.addFileArg(.{ .path = "src/imgui.vert.glsl" });
     compile_vert_step.run_step.addArg("-o");
-    exe.root_module.addAnonymousImport("imgui.vert.spv", .{
-        .root_source_file = compile_vert_step.run_step.addOutputFileArg("imgui.vert.spv")
-    });
+    const vert_spv = compile_vert_step.run_step.addOutputFileArg("imgui.vert.spv");
+    exe.root_module.addAnonymousImport("imgui.vert.spv", .{ .root_source_file = vert_spv });
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default

@@ -37,9 +37,9 @@
         //    .path = "foo",
         //},
         .glslang = .{
-            .hash = "1220d8289cec818fb379ca97753f2d363f29484655018c7e1f612a17c253d68a173f",
+            .hash = "12201be013dc214fd696b8c1e941e81eb092985af4e3e79ee1e509ab19e1d077d457",
             .lazy = true,
-            .url = "git+https://gitlab.com/joshua.software.dev/glslang-zig.git#105a384f5346e6bb9f732245bfc36a473291a812",
+            .url = "git+https://gitlab.com/joshua.software.dev/glslang-zig.git#6cf31f082c2e527f634a0b6b2720fccb29640330",
         },
         .mach_glfw = .{
             .hash = "1220ad2693c35fea5ad65143a936c3d47e0c41e84ea82411e1a9cc750ce2029af6f7",

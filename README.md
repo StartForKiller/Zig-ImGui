@@ -223,8 +223,8 @@ Nullability and array-ness of pointer parameters is hand-tuned by the logic in g
 
 ## Generating new bindings
 
-To use a different version of Dear ImGui, new bindings need to be generated. You can set your preferred version in Zig-ImGui's `build.zig.zon`, and then use the `zig build generate` command to do the necessary generation. It is preferable to have luajit or lua5.1 and python3 available in $PATH for the generation, but if they are not, the they will be built from source by the `build.zig` instead.
+To use a different version of Dear ImGui, new bindings need to be generated. You can set your preferred version in Zig-ImGui's `build.zig.zon` and `src/generator/build.zig.zon`, and then use the `zig build generate` command to do the necessary generation. It is preferable to have luajit or lua5.1 and python3 in $PATH for use in the generation, but if they are not available there, then they will instead be built from source by the `build.zig` script.
 
-Some changes to Dear ImGui may require more in-depth changes to generate correct bindings. You may need to check for updates to upstream cimgui, or add rules to generate.py.
+Some changes to Dear ImGui may require more in-depth changes to generate correct bindings. You may need to check for updates to upstream cimgui, or add rules to `src/generator/generate.py`.
 
 You can do a quick check of the integrity of the bindings with `zig build test`.  This will verify that the version of Dear ImGui matches the bindings, and compile all wrapper functions in the bindings.

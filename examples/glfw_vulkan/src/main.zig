@@ -435,14 +435,15 @@ fn frame_present(wd: *imgui_vk.ImGui_ImplVulkanH_Window, queue: vk.Queue) !Swapc
 /// easily in a zig project.
 fn load_dummy_shaders(device: vk.Device) !void {
     // Shader modules are loaded from u32 arrays, and `@alignOf(u32) == 4`.
-    // Unforunately, @embedFile is a `[] align (1) const u8`. Thankfully, even
-    // though @alignCast cannot increase the pointer alignment of a type, it
-    // does assert that it was able to do the conversion because it was already
-    // aligned correctly. By making this a comptime block, we are able to take
-    // advantage of this and verify at compile time that the embedded shader is
-    // able to be coerced safely into an `[] align (4) const u8`. Then, we can
-    // safely use `std.mem.bytesAsSlice()` to cast these well aligned bytes
-    // into a `[] align (4) const u32`, aka a `[]const u32` for short.
+    // Unfortunately, @embedFile is an `[] align (1) const u8`, and compounding
+    // problems, @alignCast cannot increase the pointer alignment of a type to
+    // fix this. However, @alignCast does assert that it was able to do the
+    // conversion because it was already aligned correctly. By making this a
+    // comptime block, we are able to take advantage of this and verify at
+    // compile time that the embedded shader is able to be coerced safely into
+    // an `[] align (4) const u8`. Then, we can safely use
+    // `std.mem.bytesAsSlice()` to cast these well aligned bytes into a
+    // `[] align (4) const u32`, aka a `[]const u32` for short.
     const frag_src: []const u32 = comptime blk: {
         const raw: []const u8 = @embedFile("imgui.frag.spv");
         const aligned: [] align(@alignOf(u32)) const u8 = @alignCast(raw);
