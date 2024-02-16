@@ -30,17 +30,12 @@
     .paths = .{
         ".gitattributes",
         ".gitignore",
-        ".gitmodules",
         "build.zig.zon",
         "build.zig",
-        "generate.bat",
-        "generate.py",
         "LICENSE",
-        "pointer_rules.py",
         "README.md",
-        "template.zig",
         "examples/",
+        "src/",
         "third_party/",
-        "zig-imgui/",
     },
 }
