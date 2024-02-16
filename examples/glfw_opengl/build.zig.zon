@@ -41,8 +41,8 @@
             .url = "git+https://codeberg.org/joshua-software-dev/mach-glfw_fix.git#780bf3a8b25f1700d7aa3480287d515f39829c3e",
         },
         .zgl = .{
-            .hash = "1220627c675648620c006bf58dba130611f62a72c4c38d6132c1db1d95bc4199d98a",
-            .url = "git+https://codeberg.org/joshua-software-dev/zgl.git#113936486b909304485a565706ca418649edace6",
+            .hash = "12200f46cfbe91ae56b803f1450eecc7249950b3f2b31a429a3127531a83e01c454f",
+            .url = "git+https://codeberg.org/joshua-software-dev/zgl.git#2a2edf15d318baa3a8d8e67635c85d1984c30e7c",
         },
         .ZigImGui = .{
             .path = "../../",

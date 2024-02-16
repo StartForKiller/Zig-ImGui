@@ -37,8 +37,9 @@
         //    .path = "foo",
         //},
         .glslang = .{
-            .hash = "1220d872d263e3e890bc7ee26de6d51b958f68b1334f983bacf6d98e522ff23d8e56",
-            .url = "git+https://gitlab.com/joshua.software.dev/glslang-zig.git#18f718b87c463cb5a4351564629bce16c305c9ae",
+            .hash = "1220d8289cec818fb379ca97753f2d363f29484655018c7e1f612a17c253d68a173f",
+            .lazy = true,
+            .url = "git+https://gitlab.com/joshua.software.dev/glslang-zig.git#105a384f5346e6bb9f732245bfc36a473291a812",
         },
         .mach_glfw = .{
             .hash = "1220ad2693c35fea5ad65143a936c3d47e0c41e84ea82411e1a9cc750ce2029af6f7",
@@ -49,8 +50,8 @@
             .url = "git+https://github.com/KhronosGroup/Vulkan-Docs.git#bf11e6d4ca4b71ae311bb925ae68d215fbe09a86",
         },
         .vulkan_zig = .{
-            .hash = "1220cac0f5c2006252f1cf6c1ce8b88bfb136238dc48dd511635bb63dc66e119e02a",
-            .url = "git+https://github.com/Snektron/vulkan-zig.git#62e981ad4e5a5afdbd5051d10d2e8a211840fd2e",
+            .hash = "122047b773db60d234bfe5018a5cd6a0f46ee19456a0c824499d75b8ea018cabdf80",
+            .url = "git+https://github.com/Snektron/vulkan-zig.git#2b6d7691f15cd037f8f2c85ddd81e41dad875b4d",
         },
         .ZigImGui = .{
             .path = "../../",

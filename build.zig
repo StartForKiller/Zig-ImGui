@@ -46,7 +46,7 @@ fn create_generation_step(
             b.addRunArtifact(lua51_dep.artifact("lua5.1"));
     cimgui_generate_command.addArgs(&.{
         b.pathJoin(&.{ cimgui_generator_path, "generator.lua" }),
-        b.fmt("{s} cc", .{ b.zig_exe }),
+        b.fmt("{s} cc", .{ b.graph.zig_exe }),
         "freetype",
         "-DIMGUI_ENABLE_STB_TRUETYPE -DIMGUI_USE_WCHAR32",
     });
