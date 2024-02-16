@@ -2,29 +2,22 @@
     .name = "Zig-ImGui",
     .version = "1.90.3",
     .dependencies = .{
-        .cimgui = .{
-            .hash = "1220ccbc4af91e50b9d317e781b0b8e670e5aa9bbc6a6fabbd66c1f8c2511069550d",
-            .url = "git+https://gitlab.com/joshua.software.dev/cimgui.git#d7ffff8cf3599bf252ef1022df4d546ffd051866",
-        },
         .freetype = .{
             .hash = "12208c57b72e3fb5c8d5d3e667e2e21ca1d9e2b6fc3f84182b320f63933f591823da",
+            .lazy = true,
             .url = "git+https://github.com/hexops/freetype.git#398638fd1cb723e478658ea371fe3be1a4dce0ae",
+        },
+        .generator = .{
+            .path = "src/generator/",
         },
         .imgui = .{
             .hash = "1220d0c1a0b86b59ae01e67a493b49ead3d9b42c6cff875f71d772ed9a7b09787adf",
             .url = "git+https://github.com/ocornut/imgui.git#c66a1e7d51951dcb121aee1404a069ac6f8d84d5",
         },
-        .lua51 = .{
-            .hash = "122059ba40c43edb4ce357513e7c390314ea719e67e135eaebf9cfd4eb5ffc023763",
-            .url = "git+https://codeberg.org/joshua-software-dev/lua51_zigbuild.git#756d8774af4d0e588c97503769081c7a0368a67d",
-        },
         .lunasvg = .{
             .hash = "122079db91cf4c0ed8d21659678c4299f55dadbb6a89020f25a49468485b19e2fe6b",
+            .lazy = true,
             .url = "git+https://github.com/sammycage/lunasvg.git#610b8bf5148a27489b4e3344b4f5617b81be38c7",
-        },
-        .python_w2c2zig = .{
-            .hash = "1220eb9edfa3fac2d7f09e34eeb5cd482aef8ce11f75b8bfbc85b74f4e1a75781cee",
-            .url = "git+https://codeberg.org/joshua-software-dev/python_w2c2zig.git#26df189bfea7b405ac5dd1cfe71017b56bd090eb",
         },
     },
     .paths = .{

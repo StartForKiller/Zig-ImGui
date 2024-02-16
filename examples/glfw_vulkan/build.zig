@@ -98,9 +98,9 @@ fn create_imgui_vulkan_static_lib(
 }
 
 /// Note, that the run step returned has no arguments set, and they will need
-/// to be given to the step afterwards. Set `glslang_dep` to null to not
-/// fallback to compiling glslangValidator from source if it not found in PATH.
-fn get_shader_compiler(b: *std.Build) !ShaderCompiler {
+/// to be given to the step afterwards. Set `use_fallback` to false to prevent
+/// compiling glslangValidator from source if it not found in $PATH.
+fn get_shader_compiler(b: *std.Build, use_fallback: bool) !ShaderCompiler {
     const maybe_glslang_path = b.findProgram(&.{ "glslang", "glslangValidator" }, &.{}) catch null;
     if (maybe_glslang_path) |glslang_path| {
         return .{
@@ -117,15 +117,21 @@ fn get_shader_compiler(b: *std.Build) !ShaderCompiler {
         };
     }
 
-    const glslang_dep = b.lazyDependency("glslang", .{
-        .target = b.host,
-        .optimize = .ReleaseFast,
-    })
-        orelse return error.BuildScriptReload;
-    return .{
-        .compiler_kind = .glslang,
-        .run_step = b.addRunArtifact(glslang_dep.artifact("glslangValidator")),
-    };
+    if (use_fallback) {
+        const glslang_dep = b.lazyDependency("glslang", .{
+            .target = b.host,
+            .optimize = .ReleaseFast,
+        });
+
+        if (glslang_dep) |dep| {
+            return .{
+                .compiler_kind = .glslang,
+                .run_step = b.addRunArtifact(dep.artifact("glslangValidator")),
+            };
+        }
+    }
+
+    return error.NoShaderCompilerFound;
 }
 
 // Although this function looks imperative, note that its job is to
@@ -227,11 +233,7 @@ pub fn build(b: *std.Build) !void {
     exe.linkLibrary(imgui_vulkan);
 
     // add shader compilation to demo how it can be done in a build script
-    const compile_frag_step = get_shader_compiler(b)
-        catch |err| switch (err) {
-            error.BuildScriptReload => return,
-            else => return err,
-        };
+    const compile_frag_step = try get_shader_compiler(b, true);
     switch (compile_frag_step.compiler_kind) {
         .glslang => compile_frag_step.run_step.addArg("-V"),
         .glslc => {
@@ -245,11 +247,7 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = compile_frag_step.run_step.addOutputFileArg("imgui.frag.spv")
     });
 
-    const compile_vert_step = get_shader_compiler(b)
-        catch |err| switch (err) {
-            error.BuildScriptReload => return,
-            else => return err,
-        };
+    const compile_vert_step = try get_shader_compiler(b, true);
     switch (compile_vert_step.compiler_kind) {
         .glslang => compile_vert_step.run_step.addArg("-V"),
         .glslc => {
