@@ -110,9 +110,6 @@ fn setup_vulkan(allocator: std.mem.Allocator) !imgui_vk.ImGui_ImplVulkan_InitInf
         defer required_extensions.deinit();
         try required_extensions.appendSlice(glfw.getRequiredInstanceExtensions().?);
         try required_extensions.append(vk.extension_info.khr_get_physical_device_properties_2.name);
-        if (builtin.os.tag.isDarwin()) {
-            try required_extensions.append(vk.extension_info.khr_portability_enumeration.name);
-        }
 
         // Ensure required extensions available
         for (required_extensions.items) |required_raw| {
@@ -122,9 +119,18 @@ fn setup_vulkan(allocator: std.mem.Allocator) !imgui_vk.ImGui_ImplVulkan_InitInf
             }
         }
 
+        const portability_extension_available = blk2: {
+            const available = is_extension_available(
+                available_extensions, 
+                vk.extension_info.khr_portability_enumeration.name,
+            );
+            if (available) try required_extensions.append(vk.extension_info.khr_portability_enumeration.name);
+            break :blk2 available or builtin.os.tag.isDarwin();
+        };
+
         // Create Vulkan Instance
         const instance_create_info: vk.InstanceCreateInfo = .{
-            .flags = .{ .enumerate_portability_bit_khr = builtin.os.tag.isDarwin() },
+            .flags = .{ .enumerate_portability_bit_khr = portability_extension_available },
             .enabled_extension_count = @intCast(required_extensions.items.len),
             .pp_enabled_extension_names = required_extensions.items.ptr,
         };
