@@ -140,10 +140,7 @@ pub fn build(b: *std.Build) !void {
         if (force_opengl_version) |forced|
             zgl.OpenGlVersionLookupTable.get(forced)
                 orelse return error.UnsupportedOpenGlVersion
-        else if (target.result.isDarwin())
-            zgl.OpenGlVersionLookupTable.get("ES_VERSION_3_2")
-                orelse unreachable
-        else if (target.result.os.tag == .windows)
+        else if (target.result.isDarwin() or target.result.os.tag == .windows)
             zgl.OpenGlVersionLookupTable.get("VERSION_3_2")
                 orelse unreachable
         else
