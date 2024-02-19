@@ -243,6 +243,18 @@ pub fn build(b: *std.Build) !void {
     exe.linkLibrary(imgui_glfw);
     exe.linkLibrary(imgui_vulkan);
 
+    if (target.result.isDarwin()) {
+        if (b.lazyDependency("MoltenVK", .{})) |MoltenVK_dep| {
+            exe.root_module.addRPathSpecial("@executable_path");
+            b.getInstallStep().dependOn(
+                &b.addInstallBinFile(
+                    MoltenVK_dep.path("MoltenVK/dylib/macOS/libMoltenVK.dylib"), 
+                    "libvulkan.1.dylib",
+                ).step
+            );
+        }
+    }
+
     // add shader compilation to demo how it can be done in a build script
     const compile_frag_step = try get_shader_compiler(b, true);
     switch (compile_frag_step.compiler_kind) {
