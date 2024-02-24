@@ -140,6 +140,12 @@ fn get_shader_compiler(b: *std.Build, use_fallback: bool) !ShaderCompiler {
                 .run_step = b.addRunArtifact(dep.artifact("glslangValidator")),
             };
         }
+
+        // prevent erroring before lazy_dep is ready
+        return .{
+            .compiler_kind = .glslang,
+            .run_step = b.addSystemCommand(&.{ "glslang" }),
+        };
     }
 
     return error.NoShaderCompilerFound;

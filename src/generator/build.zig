@@ -27,13 +27,30 @@ pub fn build(b: *std.Build) !void {
 
     // hopefully, this can be replaced by a rewrite in zig in the future, until
     // then, python is necessary to generate the bindings
-    const python_path: ?[]const u8 = b.findProgram(&.{ "python", "python3" }, &.{})
-        catch |err| switch (err) {
-            error.FileNotFound => null,
-            else => return err,
-        };
+    const python_path: ?[]const u8 = blk: {
+        const path = b.findProgram(&.{ "python", "python3" }, &.{})
+            catch |err| switch (err) {
+                error.FileNotFound => break :blk null,
+                else => return err,
+            };
 
-    const lua51_dep = blk: {
+        const result = try std.ChildProcess.run(.{
+            .allocator = b.allocator,
+            .argv = &.{
+                path,
+                "--version",
+            },
+            .max_output_bytes = 4096,
+        });
+
+        switch (result.term) {
+            .Exited => |e| if (e != 0) break :blk null,
+            else => unreachable,
+        }
+        break :blk path;
+    };
+
+    const lua51_dep: ?*std.Build.Dependency = blk: {
         if (lua_path == null) {
             break :blk b.lazyDependency("lua51", .{
                 .target = b.host,
@@ -61,8 +78,10 @@ pub fn build(b: *std.Build) !void {
     const cimgui_generate_command =
         if (lua_path) |path|
             b.addSystemCommand(&.{ path })
+        else if (lua51_dep) |dep|
+            b.addRunArtifact(dep.artifact("lua5.1"))
         else
-            b.addRunArtifact(lua51_dep.?.artifact("lua5.1"));
+            b.addSystemCommand(&.{ "luajit" });
 
     cimgui_generate_command.addArgs(&.{
         b.pathJoin(&.{ cimgui_generator_path, "generator.lua" }),
