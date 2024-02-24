@@ -50,6 +50,11 @@
             .lazy = true,
             .url = "https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.7-rc2/MoltenVK-macos.tar",
         },
+        .swiftshader = .{
+            .hash = "122005f1cac4c0ec21c0392a50dd17c283392231caa8a74d1ae3b427382fead9722d",
+            .lazy = true,
+            .url = "git+https://codeberg.org/joshua-software-dev/swiftshader_zig.git#2dcb5fb46bd46c5aa2374c7416a3a4e8f2f958d7",
+        },
         .vulkan_docs = .{
             .hash = "122000d18244567ba9f7457460cf4cdce7a4177c3d18303cc8b674a63a21d83a9f3a",
             .url = "git+https://github.com/KhronosGroup/Vulkan-Docs.git#bf11e6d4ca4b71ae311bb925ae68d215fbe09a86",
@@ -57,6 +62,11 @@
         .vulkan_zig = .{
             .hash = "122047b773db60d234bfe5018a5cd6a0f46ee19456a0c824499d75b8ea018cabdf80",
             .url = "git+https://github.com/Snektron/vulkan-zig.git#2b6d7691f15cd037f8f2c85ddd81e41dad875b4d",
+        },
+        .xcode_frameworks = .{
+            .hash = "1220432df3c74dc28bd6cc299e5c8317bc65a95219e6ebf40450c157d8c7a3ac54c0",
+            .lazy = true,
+            .url = "git+https://github.com/hexops/xcode-frameworks.git#e7c2abbe28efbb5ae7f04e6c1ac6578a6d75bb67",
         },
         .ZigImGui = .{
             .path = "../../",

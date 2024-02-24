@@ -166,12 +166,26 @@ pub fn build(b: *std.Build) !void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
+    const cpu_rendering_fallback = b.option(
+        bool,
+        "cpu_rendering_fallback",
+        "When enabled, a CPU Vulkan renderer (swiftshader) will be " ++
+        "statically included in the binary to use if a suitable vulkan " ++
+        "driver cannot be found at runtime. Can bloat the binary size " ++
+        "significantly. On MacOS, this replaces the vulkan driver " ++
+        "completely, and is disabled by default. For other platforms, " ++
+        "Default=true for debug builds, false for release builds",
+    )
+        orelse (!target.result.os.tag.isDarwin() and optimize == .Debug);
+
     const use_system_vk_xml = b.option(
         bool,
         "use_system_vk_xml",
         "Use /usr/share/vulkan/registry/vk.xml to generate Vulkan bindings " ++
-        "instead of downloading the latest bindings from the Vulkan SDK., default=false"
-    ) orelse false;
+        "instead of downloading the latest bindings from the Vulkan SDK. " ++
+        "Default=false"
+    )
+        orelse false;
 
     const mach_glfw_dep = b.dependency("mach_glfw", .{
         .target = target,
@@ -249,16 +263,104 @@ pub fn build(b: *std.Build) !void {
     exe.linkLibrary(imgui_glfw);
     exe.linkLibrary(imgui_vulkan);
 
-    if (target.result.isDarwin()) {
-        if (b.lazyDependency("MoltenVK", .{})) |MoltenVK_dep| {
-            exe.root_module.addRPathSpecial("@executable_path");
-            b.getInstallStep().dependOn(
-                &b.addInstallBinFile(
-                    MoltenVK_dep.path("MoltenVK/dylib/macOS/libMoltenVK.dylib"), 
-                    "libvulkan.1.dylib",
-                ).step
-            );
+    if (cpu_rendering_fallback) {
+        switch (target.result.os.tag) {
+            .ios, .macos, .watchos, .tvos => switch (target.result.cpu.arch) {
+                .aarch64 => if (b.lazyDependency(
+                    "swiftshader",
+                    .{
+                        .target = target,
+                        .optimize = .ReleaseSmall,
+                        .jit_mode = switch (optimize) {
+                            .Debug => @as([]const u8, "LLVMv10"),
+                            else => @as([]const u8, "LLVMv16"),
+                        },
+                    },
+                )) |swiftshader_dep| {
+                    exe.linkLibrary(swiftshader_dep.artifact("vk_swiftshader_static"));
+                },
+                .x86_64 => if (b.lazyDependency(
+                    "swiftshader",
+                    .{
+                        .target = target,
+                        .optimize = .ReleaseSmall,
+                        .jit_mode = switch (optimize) {
+                            .Debug => @as([]const u8, "Subzero"),
+                            else => @as([]const u8, "LLVMv16"),
+                        },
+                    },
+                )) |swiftshader_dep| {
+                    exe.linkLibrary(swiftshader_dep.artifact("vk_swiftshader_static"));
+                },
+                else => return error.UnsupportedCPUArchitecture,
+            },
+            .linux => if (b.lazyDependency(
+                "swiftshader",
+                .{
+                    .target = target,
+                    .optimize = .ReleaseSmall,
+                    .jit_mode = switch (optimize) {
+                        .Debug => switch (target.result.cpu.arch) {
+                            .arm, .mipsel, .x86, .x86_64 => @as([]const u8, "Subzero"),
+                            .riscv64 => @as([]const u8, "LLVMv16"),
+                            else => @as([]const u8, "LLVMv10"),
+                        },
+                        else => switch (target.result.cpu.arch) {
+                            .arm, .x86 => @as([]const u8, "LLVMv10"),
+                            else => @as([]const u8, "LLVMv16"),
+                        },
+                    },
+                },
+            )) |swiftshader_dep| {
+                exe.linkLibrary(swiftshader_dep.artifact("vk_swiftshader_static"));
+            },
+            .windows => if (b.lazyDependency(
+                "swiftshader",
+                .{
+                    .target = target,
+                    .optimize = .ReleaseSmall,
+                    .jit_mode = switch (optimize) {
+                        .Debug => switch (target.result.cpu.arch) {
+                            .x86, .x86_64 => @as([]const u8, "Subzero"),
+                            else => @as([]const u8, "LLVMv10"),
+                        },
+                        else => switch (target.result.cpu.arch) {
+                            .x86 => @as([]const u8, "LLVMv10"),
+                            else => @as([]const u8, "LLVMv16"),
+                        },
+                    },
+                },
+            )) |swiftshader_dep| {
+                exe.linkLibrary(swiftshader_dep.artifact("vk_swiftshader_static"));
+            },
+            else => {},
         }
+    } else if (target.result.isDarwin()) {
+        if (b.lazyDependency("MoltenVK", .{})) |MoltenVK_dep| {
+            if (b.lazyDependency("xcode_frameworks", .{})) |xcode_dep| {
+                exe.root_module.addSystemFrameworkPath(.{
+                    .cwd_relative = xcode_dep.builder.pathFromRoot("Frameworks/")
+                });
+                exe.root_module.addSystemIncludePath(.{
+                    .cwd_relative = xcode_dep.builder.pathFromRoot("include/")
+                });
+                exe.root_module.addLibraryPath(.{
+                    .cwd_relative = xcode_dep.builder.pathFromRoot("lib/")
+                });
+            }
+
+            exe.linkFramework("IOSurface");
+            exe.linkFramework("Metal");
+            exe.linkFramework("QuartzCore");
+            exe.addLibraryPath(MoltenVK_dep.path("MoltenVK/MoltenVK.xcframework/macos-arm64_x86_64"));
+            exe.linkSystemLibrary("MoltenVK");
+        }
+    }
+
+    {
+        const opts = b.addOptions();
+        opts.addOption(bool, "CPU_RENDERING_FALLBACK", cpu_rendering_fallback);
+        exe.root_module.addImport("build_options", opts.createModule());
     }
 
     // add shader compilation to demo how it can be done in a build script

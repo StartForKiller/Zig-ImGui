@@ -3,8 +3,10 @@ const std = @import("std");
 
 const imgui_glfw = @import("imgui_glfw.zig");
 const imgui_vk = @import("imgui_vk.zig");
+const static_vulkan = @import("static_vulkan.zig");
 const vk_dispatch = @import("vk_dispatch.zig");
 
+const build_options = @import("build_options");
 const glfw = @import("mach-glfw");
 const vk = @import("vk");
 const zimgui = @import("Zig-ImGui");
@@ -121,11 +123,11 @@ fn setup_vulkan(allocator: std.mem.Allocator) !imgui_vk.ImGui_ImplVulkan_InitInf
 
         const portability_extension_available = blk2: {
             const available = is_extension_available(
-                available_extensions, 
+                available_extensions,
                 vk.extension_info.khr_portability_enumeration.name,
             );
             if (available) try required_extensions.append(vk.extension_info.khr_portability_enumeration.name);
-            break :blk2 available or builtin.os.tag.isDarwin();
+            break :blk2 available or (builtin.os.tag.isDarwin() and !build_options.CPU_RENDERING_FALLBACK);
         };
 
         // Create Vulkan Instance
@@ -481,16 +483,50 @@ fn load_dummy_shaders(device: vk.Device) !void {
 // Main code
 pub fn main() !u8 {
     glfw.setErrorCallback(glfw_error_callback);
-    if (!glfw.init(.{})) {
-        std.log.err("failed to initialize GLFW: {?s}", .{ glfw.getErrorString() });
-        return 1;
+
+    switch (builtin.os.tag.isDarwin()) {
+        true => {
+            glfw.initVulkanLoader(@ptrCast(&static_vulkan.vkGetInstanceProcAddr));
+            if (!glfw.init(.{})) {
+                std.log.err("failed to initialize GLFW: {?s}", .{ glfw.getErrorString() });
+                return 1;
+            }
+
+            if (!glfw.vulkanSupported()) {
+                std.log.err("GLFW: Vulkan Not Supported", .{});
+                return 1;
+            }
+        },
+        else => {
+            if (!glfw.init(.{})) {
+                std.log.err("failed to initialize GLFW: {?s}", .{ glfw.getErrorString() });
+                return 1;
+            }
+
+            if (!glfw.vulkanSupported()) {
+                std.log.err("GLFW: Vulkan Not Supported", .{});
+
+                if (build_options.CPU_RENDERING_FALLBACK) {
+                    glfw.terminate();
+
+                    std.log.err("Falling back to CPU rendering...", .{});
+                    glfw.initVulkanLoader(@ptrCast(&static_vulkan.swiftshaderGetInstanceProcAddr));
+                    if (!glfw.init(.{})) {
+                        std.log.err("failed to initialize GLFW: {?s}", .{ glfw.getErrorString() });
+                        return 1;
+                    }
+
+                    if (!glfw.vulkanSupported()) {
+                        std.log.err("GLFW: Vulkan Not Supported", .{});
+                        return 1;
+                    }
+                } else {
+                    return 1;
+                }
+            }
+        },
     }
     defer glfw.terminate();
-
-    if (!glfw.vulkanSupported()) {
-        std.log.err("GLFW: Vulkan Not Supported\n", .{});
-        return 1;
-    }
 
     // Create window with Vulkan context
     const window = glfw.Window.create(
