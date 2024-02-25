@@ -52,7 +52,6 @@ fn create_imgui_glfw_static_lib(
 /// touches up `imgui_impl_opengl3.cpp` to remove its needless incompatiblity
 /// with simultaneous dynamic loading of opengl and OpenGL ES 2.0 support
 fn generate_modified_imgui_source(b: *std.Build, path: []const u8) ![]const u8 {
-
     var list = blk: {
         const file = try std.fs.openFileAbsolute(path, .{});
         defer file.close();
@@ -63,10 +62,37 @@ fn generate_modified_imgui_source(b: *std.Build, path: []const u8) ![]const u8 {
     };
     defer list.deinit();
 
-    const search_text = "#elif !defined(IMGUI_IMPL_OPENGL_LOADER_CUSTOM)";
-    const start_pos = std.mem.indexOf(u8, list.items, search_text)
+    // This should only replace the first occurrance of this #if near the top
+    // of the file where it decides if it should include the GLES headers
+    // instead of dynamically linking. We want dynamic linking for portability,
+    // but also want Dear ImGui to limit its OpenGL API usage as is appropriate
+    // for whatever version we've targeted, hence this substitution.
+    const search_text_1 = "#if defined(IMGUI_IMPL_OPENGL_ES2)";
+    const start_pos_1 = std.mem.indexOf(u8, list.items, search_text_1)
         orelse return error.InvalidSourceFile;
-    try list.replaceRange(start_pos, search_text.len, "#else");
+    try list.replaceRange(start_pos_1, search_text_1.len, "#if false");
+
+    // This also should only replace the first occurrance of this #if near the
+    // top  of the file where it decides if it should include the GLES headers
+    // instead of dynamically linking. We want dynamic linking for portability,
+    // but also want Dear ImGui to limit its OpenGL API usage as is appropriate
+    // for whatever version we've targeted, hence this substitution.
+    const search_text_2 = "#elif defined(IMGUI_IMPL_OPENGL_ES3)";
+    const start_pos_2 = std.mem.indexOf(u8, list.items, search_text_2)
+        orelse return error.InvalidSourceFile;
+    try list.replaceRange(start_pos_2, search_text_2.len, "#elif false");
+
+    // Normally, this setting disables Dear ImGui's builtin dynamic OpenGL
+    // loader completely. For this project, it is preferrable for Dear ImGui to
+    // keep using its included loader, but to skip the loader's dlopen of
+    // OpenGL. This allows us to delegate the locating and opening of the
+    // OpenGL dynamic library to glfw, and then give the `glXGetProcAddress`/
+    // `glXGetProcAddressARB` function pointer that glfw located directly to
+    // Dear ImGui's loader.
+    const search_text_3 = "#elif !defined(IMGUI_IMPL_OPENGL_LOADER_CUSTOM)";
+    const start_pos_3 = std.mem.indexOf(u8, list.items, search_text_3)
+        orelse return error.InvalidSourceFile;
+    try list.replaceRange(start_pos_3, search_text_3.len, "#else");
 
     return list.toOwnedSlice();
 }
@@ -77,6 +103,7 @@ fn create_imgui_opengl_static_lib(
     optimize: std.builtin.OptimizeMode,
     imgui_dep: *std.Build.Dependency,
     ZigImGui_dep: *std.Build.Dependency,
+    selected_opengl_version: zgl.OpenGlVersion,
 ) !*std.Build.Step.Compile {
     // compile the desired backend into a separate static library
     const imgui_opengl = b.addStaticLibrary(.{
@@ -92,11 +119,15 @@ fn create_imgui_opengl_static_lib(
     for (ZigImGui_build_script.IMGUI_C_DEFINES) |c_define| {
         imgui_opengl.root_module.addCMacro(c_define[0], c_define[1]);
     }
-    imgui_opengl.root_module.addCMacro("IMGUI_IMPL_OPENGL_LOADER_CUSTOM", "1");
 
     // ensure the backend has access to the ImGui headers it expects
     imgui_opengl.addIncludePath(imgui_dep.path("."));
     imgui_opengl.addIncludePath(imgui_dep.path("backends/"));
+
+    imgui_opengl.defineCMacro("IMGUI_IMPL_OPENGL_LOADER_CUSTOM", "1");
+    if (selected_opengl_version.es) {
+        imgui_opengl.defineCMacro(b.fmt("IMGUI_IMPL_OPENGL_ES{d}", .{ selected_opengl_version.major }), "1");
+    }
 
     imgui_opengl.addCSourceFile(.{
         .file = b.addWriteFiles().add("imgui_impl_opengl3.cpp",
@@ -174,7 +205,14 @@ pub fn build(b: *std.Build) !void {
     const imgui_dep = ZigImGui_dep.builder.dependency("imgui", .{ .target = target, .optimize = optimize });
 
     const imgui_glfw = create_imgui_glfw_static_lib(b, target, optimize, glfw_dep, imgui_dep, ZigImGui_dep);
-    const imgui_opengl = try create_imgui_opengl_static_lib(b, target, optimize, imgui_dep, ZigImGui_dep);
+    const imgui_opengl = try create_imgui_opengl_static_lib(
+        b,
+        target,
+        optimize,
+        imgui_dep,
+        ZigImGui_dep,
+        selected_opengl_version,
+    );
 
     const imports: []const std.Build.Module.Import = &.{
         .{ .name = "mach-glfw", .module = mach_glfw_dep.module("mach-glfw") },

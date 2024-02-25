@@ -37,15 +37,22 @@ pub fn main() !u8 {
         "mach-glfw + zig-opengl + Zig-ImGui",
         null,
         null,
-        .{
-            .client_api = switch (build_options.OPENGL_ES_PROFILE) {
-                true => .opengl_es_api,
-                else => .opengl_api,
+        switch (build_options.OPENGL_ES_PROFILE) {
+            true => .{
+                .client_api = .opengl_es_api,
+                .opengl_forward_compat = builtin.os.tag.isDarwin(),
+                .opengl_profile = .opengl_core_profile,
+                .context_creation_api = .egl_context_api,
+                .context_version_major = build_options.OPENGL_MAJOR_VERSION,
+                .context_version_minor = build_options.OPENGL_MINOR_VERSION,
             },
-            .opengl_forward_compat = builtin.os.tag.isDarwin(),
-            .opengl_profile = .opengl_core_profile,
-            .context_version_major = build_options.OPENGL_MAJOR_VERSION,
-            .context_version_minor = build_options.OPENGL_MINOR_VERSION,
+            else => .{
+                .client_api = .opengl_api,
+                .opengl_forward_compat = builtin.os.tag.isDarwin(),
+                .opengl_profile = .opengl_core_profile,
+                .context_version_major = build_options.OPENGL_MAJOR_VERSION,
+                .context_version_minor = build_options.OPENGL_MINOR_VERSION,
+            },
         },
     ) orelse {
         std.log.err("failed to create GLFW window: {?s}", .{ glfw.getErrorString() });
@@ -79,7 +86,7 @@ pub fn main() !u8 {
 
     // Setup Platform/Renderer backends
     _ = imgui_glfw.ImGui_ImplGlfw_InitForOpenGL(window.handle, true);
-    switch (imgui_ogl.ImGui_ImplOpenGL3_LoaderInit(@ptrCast(&glfw.getProcAddress))) {
+    switch (imgui_ogl.populate_dear_imgui_opengl_symbol_table(@ptrCast(&glfw.getProcAddress))) {
         .ok => {},
         .init_error, .open_library => return error.LoadOpenGLFailed,
         .opengl_version_unsupported => if (!build_options.OPENGL_ES_PROFILE) return error.UnsupportedOpenGlVersion,

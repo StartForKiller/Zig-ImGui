@@ -8,7 +8,7 @@ const LoaderInitErrors = enum (i32) {
 };
 
 extern fn imgl3wInit2(get_proc_address_pfn: *const fn ([*:0]const u8) callconv(.C) ?*anyopaque) LoaderInitErrors;
-pub const ImGui_ImplOpenGL3_LoaderInit = imgl3wInit2;
+pub const populate_dear_imgui_opengl_symbol_table = imgl3wInit2;
 
 pub extern fn ImGui_ImplOpenGL3_Init(glsl_version: ?[*:0]const u8) bool;
 pub extern fn ImGui_ImplOpenGL3_Shutdown() void;
