@@ -149,7 +149,7 @@ pub fn build(b: *std.Build) !void {
 
         cimgui.addIncludePath(imgui_dep.path("misc/freetype"));
         cimgui.addCSourceFile(.{
-            .file = .{ .path = "src/generated/imgui_freetype.cpp" },
+            .file = .{ .path = "src/vendor/imgui_freetype.cpp" },
             .flags = IMGUI_C_FLAGS,
         });
     }
