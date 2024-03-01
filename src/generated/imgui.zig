@@ -10,7 +10,7 @@ const imgui = @This();
 
 pub const DrawCallback_ResetRenderState: DrawCallback = null;
 
-pub const VERSION = "1.90.3";
+pub const VERSION = "1.90.4";
 pub fn CHECKVERSION() void {
     if (builtin.mode != .ReleaseFast) {
         assert(raw.igDebugCheckVersionAndDataLayout(VERSION, @sizeOf(IO), @sizeOf(Style), @sizeOf(Vec2), @sizeOf(Vec4), @sizeOf(DrawVert), @sizeOf(DrawIdx)));
@@ -3617,6 +3617,9 @@ pub const DebugCheckVersionAndDataLayout = raw.igDebugCheckVersionAndDataLayout;
 /// DebugFlashStyleColor(idx: Col) void
 pub const DebugFlashStyleColor = raw.igDebugFlashStyleColor;
 
+/// DebugStartItemPicker() void
+pub const DebugStartItemPicker = raw.igDebugStartItemPicker;
+
 /// DebugTextEncoding(text: ?[*]const u8) void
 pub const DebugTextEncoding = raw.igDebugTextEncoding;
 
@@ -3808,8 +3811,11 @@ pub inline fn GetColorU32_Col(idx: Col) u32 {
 /// GetColorU32_Vec4(col: Vec4) u32
 pub const GetColorU32_Vec4 = raw.igGetColorU32_Vec4;
 
-/// GetColorU32_U32(col: u32) u32
-pub const GetColorU32_U32 = raw.igGetColorU32_U32;
+/// GetColorU32_U32Ext(col: u32, alpha_mul: f32) u32
+pub const GetColorU32_U32Ext = raw.igGetColorU32_U32;
+pub inline fn GetColorU32_U32(col: u32) u32 {
+    return @This().GetColorU32_U32Ext(col, 1.0);
+}
 
 /// GetColumnIndex() i32
 pub const GetColumnIndex = raw.igGetColumnIndex;
@@ -5425,6 +5431,7 @@ pub const raw = struct {
     pub extern fn igCreateContext(shared_font_atlas: ?*FontAtlas) callconv(.C) ?*Context;
     pub extern fn igDebugCheckVersionAndDataLayout(version_str: ?[*:0]const u8, sz_io: usize, sz_style: usize, sz_vec2: usize, sz_vec4: usize, sz_drawvert: usize, sz_drawidx: usize) callconv(.C) bool;
     pub extern fn igDebugFlashStyleColor(idx: Col) callconv(.C) void;
+    pub extern fn igDebugStartItemPicker() callconv(.C) void;
     pub extern fn igDebugTextEncoding(text: ?[*]const u8) callconv(.C) void;
     pub extern fn igDestroyContext(ctx: ?*Context) callconv(.C) void;
     pub extern fn igDestroyPlatformWindows() callconv(.C) void;
@@ -5468,7 +5475,7 @@ pub const raw = struct {
     pub extern fn igGetClipboardText() callconv(.C) ?[*:0]const u8;
     pub extern fn igGetColorU32_Col(idx: Col, alpha_mul: f32) callconv(.C) u32;
     pub extern fn igGetColorU32_Vec4(col: Vec4) callconv(.C) u32;
-    pub extern fn igGetColorU32_U32(col: u32) callconv(.C) u32;
+    pub extern fn igGetColorU32_U32(col: u32, alpha_mul: f32) callconv(.C) u32;
     pub extern fn igGetColumnIndex() callconv(.C) i32;
     pub extern fn igGetColumnOffset(column_index: i32) callconv(.C) f32;
     pub extern fn igGetColumnWidth(column_index: i32) callconv(.C) f32;

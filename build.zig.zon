@@ -1,6 +1,6 @@
 .{
     .name = "Zig-ImGui",
-    .version = "1.90.3",
+    .version = "1.90.4",
     .dependencies = .{
         .freetype = .{
             .hash = "12208c57b72e3fb5c8d5d3e667e2e21ca1d9e2b6fc3f84182b320f63933f591823da",
@@ -11,8 +11,8 @@
             .path = "generator/",
         },
         .imgui = .{
-            .hash = "1220d0c1a0b86b59ae01e67a493b49ead3d9b42c6cff875f71d772ed9a7b09787adf",
-            .url = "git+https://github.com/ocornut/imgui.git#c66a1e7d51951dcb121aee1404a069ac6f8d84d5",
+            .hash = "12205c8c1297ec2b49afd9f3a405e44510130e0e6f87d5889c96ab493d2e6f1205df",
+            .url = "git+https://github.com/ocornut/imgui.git#c6aa051629753f0ef0d26bf775a8b6a92aa213b2",
         },
         .lunasvg = .{
             .hash = "122079db91cf4c0ed8d21659678c4299f55dadbb6a89020f25a49468485b19e2fe6b",

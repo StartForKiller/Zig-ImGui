@@ -39,12 +39,12 @@
         //    .path = "foo",
         //},
         .cimgui = .{
-            .hash = "1220ccbc4af91e50b9d317e781b0b8e670e5aa9bbc6a6fabbd66c1f8c2511069550d",
-            .url = "git+https://gitlab.com/joshua.software.dev/cimgui.git#d7ffff8cf3599bf252ef1022df4d546ffd051866",
+            .hash = "12200367d49aeefa2df10a64fb0da56a0ba0adb87a485cbaa6e5952b9849d767e451",
+            .url = "git+https://gitlab.com/joshua.software.dev/cimgui.git#e46db6f8f23cc8054cfc8f78ce8290deac2f345c",
         },
         .imgui = .{
-            .hash = "1220d0c1a0b86b59ae01e67a493b49ead3d9b42c6cff875f71d772ed9a7b09787adf",
-            .url = "git+https://github.com/ocornut/imgui.git#c66a1e7d51951dcb121aee1404a069ac6f8d84d5",
+            .hash = "12205c8c1297ec2b49afd9f3a405e44510130e0e6f87d5889c96ab493d2e6f1205df",
+            .url = "git+https://github.com/ocornut/imgui.git#c6aa051629753f0ef0d26bf775a8b6a92aa213b2",
         },
         .lua51 = .{
             .hash = "122059ba40c43edb4ce357513e7c390314ea719e67e135eaebf9cfd4eb5ffc023763",
