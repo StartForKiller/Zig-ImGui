@@ -28,6 +28,7 @@
         "LICENSE",
         "README.md",
         "examples/",
+        "generator/",
         "src/",
         "third_party/",
     },
