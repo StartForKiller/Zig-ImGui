@@ -510,7 +510,7 @@ pub fn main() !u8 {
                     glfw.terminate();
 
                     std.log.err("Falling back to CPU rendering...", .{});
-                    glfw.initVulkanLoader(@ptrCast(&static_vulkan.swiftshaderGetInstanceProcAddr));
+                    glfw.initVulkanLoader(@ptrCast(&static_vulkan.vkGetInstanceProcAddr));
                     if (!glfw.init(.{})) {
                         std.log.err("failed to initialize GLFW: {?s}", .{ glfw.getErrorString() });
                         return 1;
