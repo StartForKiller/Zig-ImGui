@@ -94,7 +94,7 @@ pub fn build(b: *std.Build) !void {
 
     const fix_tool = b.addExecutable(.{
         .name = "fix_cimgui_sources",
-        .root_source_file = .{ .path = "fixup_generated_cimgui.zig" },
+        .root_source_file = .{ .path = "src/fixup_generated_cimgui.zig" },
         .target = b.host,
     });
     const fix_step = b.addRunArtifact(fix_tool);
@@ -105,11 +105,11 @@ pub fn build(b: *std.Build) !void {
     write_step.step.dependOn(&fix_step.step);
     write_step.addCopyFileToSource(
         .{ .cwd_relative = cimgui_dep.path("cimgui.cpp").getPath(b) },
-        "../generated/cimgui.cpp"
+        "../src/generated/cimgui.cpp"
     );
     write_step.addCopyFileToSource(
         .{ .cwd_relative = cimgui_dep.path("cimgui.h").getPath(b) },
-        "../generated/cimgui.h"
+        "../src/generated/cimgui.h"
     );
 
     const python_generate_command =
@@ -165,7 +165,7 @@ pub fn build(b: *std.Build) !void {
         try std.fs.path.relative(
             temp_path_arena.allocator(),
             b.pathFromRoot("."),
-            b.pathFromRoot("../generated/imgui.zig"),
+            b.pathFromRoot("../src/generated/imgui.zig"),
         ),
     );
     _ = temp_path_arena.reset(.free_all);
@@ -189,7 +189,7 @@ pub fn build(b: *std.Build) !void {
         try std.fs.path.relative(
             temp_path_arena.allocator(),
             b.pathFromRoot("."),
-            b.pathFromRoot("../template.zig"),
+            b.pathFromRoot("src/template.zig"),
         ),
     );
     _ = temp_path_arena.reset(.free_all);

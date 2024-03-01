@@ -8,7 +8,7 @@
             .url = "git+https://github.com/hexops/freetype.git#398638fd1cb723e478658ea371fe3be1a4dce0ae",
         },
         .generator = .{
-            .path = "src/generator/",
+            .path = "generator/",
         },
         .imgui = .{
             .hash = "1220d0c1a0b86b59ae01e67a493b49ead3d9b42c6cff875f71d772ed9a7b09787adf",
