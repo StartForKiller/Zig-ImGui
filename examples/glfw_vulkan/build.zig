@@ -352,7 +352,7 @@ pub fn build(b: *std.Build) !void {
             exe.linkFramework("IOSurface");
             exe.linkFramework("Metal");
             exe.linkFramework("QuartzCore");
-            exe.addLibraryPath(MoltenVK_dep.path("MoltenVK/MoltenVK.xcframework/macos-arm64_x86_64"));
+            exe.addLibraryPath(MoltenVK_dep.path("MoltenVK/static/MoltenVK.xcframework/macos-arm64_x86_64"));
             exe.linkSystemLibrary("MoltenVK");
         }
     }

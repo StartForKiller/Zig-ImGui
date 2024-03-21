@@ -37,23 +37,23 @@
         //    .path = "foo",
         //},
         .glslang = .{
-            .hash = "12201be013dc214fd696b8c1e941e81eb092985af4e3e79ee1e509ab19e1d077d457",
+            .hash = "1220b2cdab3c4a05c8044d7e45e9e6d7296e49a0504e4be41fb55171811a6f1bd5d7",
             .lazy = true,
-            .url = "git+https://gitlab.com/joshua.software.dev/glslang-zig.git#6cf31f082c2e527f634a0b6b2720fccb29640330",
+            .url = "git+https://gitlab.com/joshua.software.dev/glslang-zig.git#815fd3460c9f45030495516ee9a6ddac47f59aa9",
         },
         .mach_glfw = .{
             .hash = "1220ad2693c35fea5ad65143a936c3d47e0c41e84ea82411e1a9cc750ce2029af6f7",
             .url = "git+https://codeberg.org/joshua-software-dev/mach-glfw_fix.git#780bf3a8b25f1700d7aa3480287d515f39829c3e",
         },
         .MoltenVK = .{
-            .hash = "1220fb7361eafc8a1d95562e95b7202436c5b5336cd93677f69468624b67f84c1a0d",
+            .hash = "12202e83f182946d8b22c8a219e2a85aca5fdb5fe1de3953b8f28b1e2ffd8d0c2241",
             .lazy = true,
-            .url = "https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.7-rc2/MoltenVK-macos.tar",
+            .url = "https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.8/MoltenVK-macos.tar",
         },
         .swiftshader = .{
-            .hash = "122005f1cac4c0ec21c0392a50dd17c283392231caa8a74d1ae3b427382fead9722d",
+            .hash = "12208c0cc6554dfa7b6ccbb2764132ea10efc3e0f080ce308709d0f07320e96cd580",
             .lazy = true,
-            .url = "git+https://codeberg.org/joshua-software-dev/swiftshader_zig.git#2dcb5fb46bd46c5aa2374c7416a3a4e8f2f958d7",
+            .url = "git+https://codeberg.org/joshua-software-dev/swiftshader_zig.git#21fb7f45c5af8ce916826afaf3c28d9171571e9f",
         },
         .vulkan_docs = .{
             .hash = "122000d18244567ba9f7457460cf4cdce7a4177c3d18303cc8b674a63a21d83a9f3a",
