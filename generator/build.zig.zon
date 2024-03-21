@@ -47,9 +47,9 @@
             .url = "git+https://github.com/ocornut/imgui.git#c6aa051629753f0ef0d26bf775a8b6a92aa213b2",
         },
         .lua51 = .{
-            .hash = "122059ba40c43edb4ce357513e7c390314ea719e67e135eaebf9cfd4eb5ffc023763",
+            .hash = "122023541d9c08e7e414df2ded6eac8209a2e23f4aded666b1e7522cde05588270b7",
             .lazy = true,
-            .url = "git+https://codeberg.org/joshua-software-dev/lua51_zigbuild.git#756d8774af4d0e588c97503769081c7a0368a67d",
+            .url = "git+https://codeberg.org/joshua-software-dev/lua51_zigbuild.git#cee802cbb1ea4388b33a585eb4a83ba4e1864a4c",
         },
         .python_w2c2zig = .{
             .hash = "1220eb9edfa3fac2d7f09e34eeb5cd482aef8ce11f75b8bfbc85b74f4e1a75781cee",

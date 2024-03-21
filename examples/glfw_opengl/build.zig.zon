@@ -37,8 +37,8 @@
         //    .path = "foo",
         //},
         .mach_glfw = .{
-            .hash = "1220ad2693c35fea5ad65143a936c3d47e0c41e84ea82411e1a9cc750ce2029af6f7",
-            .url = "git+https://codeberg.org/joshua-software-dev/mach-glfw_fix.git#780bf3a8b25f1700d7aa3480287d515f39829c3e",
+            .hash = "12207679d7344c1d1208e68af38000197257205d8188e8a9b4898c00cabb0cd66613",
+            .url = "git+https://codeberg.org/joshua-software-dev/mach-glfw-unrestricted.git#89ddd37e2578e313ef09c855857e4dd71fab81fa",
         },
         .zgl = .{
             .hash = "12200f46cfbe91ae56b803f1450eecc7249950b3f2b31a429a3127531a83e01c454f",

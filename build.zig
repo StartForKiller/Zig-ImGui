@@ -96,7 +96,7 @@ pub fn build(b: *std.Build) !void {
 
                 cimgui.addIncludePath(dep.path("3rdparty/plutovg/"));
                 cimgui.addCSourceFiles(.{
-                    .dependency = dep,
+                    .root = dep.path(""),
                     .files = &.{
                         "3rdparty/plutovg/plutovg.c",
                         "3rdparty/plutovg/plutovg-paint.c",
@@ -116,7 +116,7 @@ pub fn build(b: *std.Build) !void {
 
                 cimgui.addIncludePath(dep.path("include/"));
                 cimgui.addCSourceFiles(.{
-                    .dependency = dep,
+                    .root = dep.path(""),
                     .files = &.{
                         "source/lunasvg.cpp",
                         "source/element.cpp",
