@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const xcode_frameworks = @import("xcode_frameworks");
 const ZigImGui_build_script = @import("ZigImGui");
 
 
@@ -41,6 +42,7 @@ fn create_imgui_glfw_static_lib(
 
     // this backend needs glfw and opengl headers as well
     imgui_glfw.addIncludePath(glfw_dep.path("include/"));
+    xcode_frameworks.addPaths(&imgui_glfw.root_module);
 
     imgui_glfw.addCSourceFile(.{
         .file = imgui_dep.path("backends/imgui_impl_glfw.cpp"),
@@ -334,17 +336,7 @@ pub fn build(b: *std.Build) !void {
         }
     } else if (target.result.isDarwin()) {
         if (b.lazyDependency("MoltenVK", .{})) |MoltenVK_dep| {
-            if (b.lazyDependency("xcode_frameworks", .{})) |xcode_dep| {
-                exe.root_module.addSystemFrameworkPath(.{
-                    .cwd_relative = xcode_dep.builder.pathFromRoot("Frameworks/")
-                });
-                exe.root_module.addSystemIncludePath(.{
-                    .cwd_relative = xcode_dep.builder.pathFromRoot("include/")
-                });
-                exe.root_module.addLibraryPath(.{
-                    .cwd_relative = xcode_dep.builder.pathFromRoot("lib/")
-                });
-            }
+            xcode_frameworks.addPaths(&exe.root_module);
 
             exe.linkFramework("IOSurface");
             exe.linkFramework("Metal");

@@ -65,7 +65,6 @@
         },
         .xcode_frameworks = .{
             .hash = "122010c1a745ea06dee3012fbd3b311bd3d75ec39ded6bf566b36ebe3cd8da482347",
-            .lazy = true,
             .url = "git+https://github.com/hexops/xcode-frameworks.git#2fca968efa90a4060803c56dd0f027890353f0a9",
         },
         .ZigImGui = .{
