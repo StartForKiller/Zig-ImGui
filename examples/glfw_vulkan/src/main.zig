@@ -17,12 +17,182 @@ const SwapchainState = enum {
     rebuild_swapchain,
 };
 
+const VulkanDriver = enum {
+    moltenvk,
+    other,
+};
+
 const CLEAR_COLOR = zimgui.Vec4.init(0.45, 0.55, 0.60, 1.0);
 const MIN_IMAGE_COUNT: u32 = 2;
 
 /// Default GLFW error handling callback
 fn glfw_error_callback(error_code: glfw.ErrorCode, description: [:0]const u8) void {
     std.log.err("GLFW: {}: {s}\n", .{ error_code, description });
+}
+
+fn load_glfw_and_vulkan_driver(allocator: std.mem.Allocator) !VulkanDriver {
+    var environment = try std.process.getEnvMap(allocator);
+    defer environment.deinit();
+    var vulkan_driver: VulkanDriver = .other;
+
+    // We are using a different name for the MoltenVK dylib file than GLFW
+    // expects, so it will not find it automatically. GLFW also doesn't support
+    // finding MoltenVK automatically when statically linked, so we need to
+    // provide it with the correct loader function manually in that case as
+    // well.
+    if (builtin.os.tag.isDarwin()) {
+        const force_moltenvk_driver_mode = std.meta.stringToEnum(
+            build_options.@"build.VulkanDriverMode",
+            environment.get("FORCE_MOLTENVK_DRIVER_MODE") orelse "",
+        );
+
+        if (force_moltenvk_driver_mode != null or build_options.MOLTENVK_DRIVER_MODE != .disable) {
+            switch (force_moltenvk_driver_mode orelse build_options.MOLTENVK_DRIVER_MODE) {
+                .disable => {},
+                .dynamic => file_not_found: {
+                    var lib = std.DynLib.open("libMoltenVK.dylib")
+                        catch |err| switch (err) {
+                            error.FileNotFound => break :file_not_found,
+                            else => return err,
+                        };
+                    // For some reason, unlike on Linux/Windows where closing a
+                    // dlopen'd library will cause a segfault if you attempt to
+                    // use symbols or memory addresses from that library after
+                    // you close it, on MacOS this is perfectly valid behavior.
+                    // I don't think this has any benefit besides maybe one
+                    // less open file handle? In any case, it makes resource
+                    // cleanup easy and unconditional for us here.
+                    defer lib.close();
+
+                    if (lib.lookup(vk.PfnGetInstanceProcAddr, "vkGetInstanceProcAddr")) |gipa| {
+                        std.log.info(
+                            "{s}Loading dynamic MoltenVK driver...",
+                            .{ if (force_moltenvk_driver_mode != null) "[FORCED] " else "" },
+                        );
+                        glfw.initVulkanLoader(@ptrCast(gipa));
+                        vulkan_driver = .moltenvk;
+                    }
+                },
+                .static => {
+                    std.log.info(
+                        "{s}Loading static MoltenVK driver...",
+                        .{ if (force_moltenvk_driver_mode != null) "[FORCED] " else "" },
+                    );
+                    glfw.initVulkanLoader(@ptrCast(&static_vulkan.vkGetInstanceProcAddr));
+                    vulkan_driver = .moltenvk;
+                },
+            }
+        }
+
+    }
+
+    // Allow GLFW to try to auto detect the Vulkan driver on the system. This
+    // will use our specified MoltenVK on MacOS due to the actions we took
+    // above.
+    if (!glfw.init(.{})) {
+        std.log.err("failed to initialize GLFW: {?s}", .{ glfw.getErrorString() });
+        return error.InitFailed;
+    }
+
+    const force_swiftshader_driver_mode = std.meta.stringToEnum(
+        build_options.@"build.VulkanDriverMode",
+        environment.get("FORCE_SWIFTSHADER_DRIVER_MODE") orelse "",
+    );
+    // If GLFW failed to find the system Vulkan driver, or failed to load it
+    // due to unsupported hardware (a VM, a very old machine, etc.), now we
+    // will try loading SwiftShader, if enabled to do so at build time. In the
+    // case where the driver was loaded successfully, but the
+    // FORCE_SWIFTSHADER_DRIVER_MODE environment variable is set to a valid
+    // value, we will unload the driver GLFW found and attempt to load
+    // SwiftShader in its place.
+    if (
+        (!glfw.vulkanSupported() and build_options.SWIFTSHADER_DRIVER_MODE != .disable) or
+        force_swiftshader_driver_mode != null
+    ) {
+        // Tell GLFW to clean up its state so we can attempt to start anew with
+        // SwiftShader.
+        glfw.terminate();
+
+        loaded_swiftshader: {
+            switch (force_swiftshader_driver_mode orelse build_options.SWIFTSHADER_DRIVER_MODE) {
+                .disable => {},
+                .dynamic => file_not_found: {
+                    var load_success = false;
+                    var lib = std.DynLib.open(switch (builtin.os.tag) {
+                        .ios, .macos, .watchos, .tvos => "libvk_swiftshader.dylib",
+                        .windows => "vk_swiftshader.dll",
+                        else => "libvk_swiftshader.so",
+                    })
+                        catch |err| switch (err) {
+                            error.FileNotFound => break :file_not_found,
+                            else => return err,
+                        };
+                    // We intentionally do not close this lib in the event we
+                    // successfully load it. In a proper implementation, we
+                    // would close this library on program exit if it was
+                    // loaded. However, this program only ever attempts to load
+                    // this driver once, at program start, and it must remain
+                    // open if in use through the lifetime of the application
+                    // (on non-MacOS platforms, at least). Therefore, simply
+                    // exiting the application without closing the lib will
+                    // force the OS to do the cleanup for us, which is
+                    // sufficient given the lifecycle of this application. If
+                    // it was possible to reload the renderer completely
+                    // without restarting the application, a more proper
+                    // implementation would be required.
+                    //
+                    // On MacOS, this instead takes advantage of the same trick
+                    // used above for MoltenVK, and just unconditionally closes
+                    // the lib file. See the comments above for why we would do
+                    // this.
+                    defer switch (builtin.os.tag) {
+                        .ios, .macos, .watchos, .tvos => lib.close(),
+                        else => if (!load_success) lib.close(),
+                    };
+
+                    if (lib.lookup(vk.PfnGetInstanceProcAddr, "vkGetInstanceProcAddr")) |gipa| {
+                        std.log.info(
+                            "{s}Loading dynamic SwiftShader driver...",
+                            .{ if (force_swiftshader_driver_mode != null) "[FORCED] " else "" },
+                        );
+
+                        glfw.initVulkanLoader(@ptrCast(gipa));
+                        load_success = true;
+                        vulkan_driver = .other;
+                        break :loaded_swiftshader;
+                    }
+                },
+                .static => {
+                    std.log.info(
+                        "{s}Loading static SwiftShader driver...",
+                        .{ if (force_swiftshader_driver_mode != null) "[FORCED] " else "" },
+                    );
+                    glfw.initVulkanLoader(@ptrCast(&static_vulkan.vkGetInstanceProcAddr));
+                    vulkan_driver = .other;
+                    break :loaded_swiftshader;
+                },
+            }
+
+            // This was our last ditch effort to load at least one Vulkan
+            // driver, if this fails too, we cannot continue.
+            std.log.err("GLFW: All Vulkan drivers failed to load, exiting...", .{});
+            return error.InitFailed;
+        }
+
+        // SwiftShader was successfully found, attempt to start with it loaded.
+        if (!glfw.init(.{})) {
+            std.log.err("failed to initialize GLFW: {?s}", .{ glfw.getErrorString() });
+            return error.InitFailed;
+        }
+
+        // Final chance to bail on load failure.
+        if (!glfw.vulkanSupported()) {
+            std.log.err("GLFW: Vulkan Not Supported", .{});
+            return error.InitFailed;
+        }
+    }
+
+    return vulkan_driver;
 }
 
 fn check_vk_result(result: vk.Result) callconv(.C) void {
@@ -76,7 +246,7 @@ fn setup_vulkan_select_physical_device(allocator: std.mem.Allocator, instance: v
 
 /// This function populates all the vk_dispatch vtables, and they are safe to
 /// call only after it returns without error.
-fn setup_vulkan(allocator: std.mem.Allocator) !imgui_vk.ImGui_ImplVulkan_InitInfo {
+fn setup_vulkan(allocator: std.mem.Allocator, vulkan_driver: VulkanDriver) !imgui_vk.ImGui_ImplVulkan_InitInfo {
     // We are dynamically loading vulkan, which glfw provides an easy helper
     // for. We use the glfw `getInstanceProcAddress` function to get the vulkan
     // `getInstanceProcAddr` function pointer. These functions should return
@@ -127,7 +297,7 @@ fn setup_vulkan(allocator: std.mem.Allocator) !imgui_vk.ImGui_ImplVulkan_InitInf
                 vk.extension_info.khr_portability_enumeration.name,
             );
             if (available) try required_extensions.append(vk.extension_info.khr_portability_enumeration.name);
-            break :blk2 available or (builtin.os.tag.isDarwin() and !build_options.CPU_RENDERING_FALLBACK);
+            break :blk2 available or (builtin.os.tag.isDarwin() and vulkan_driver == .moltenvk);
         };
 
         // Create Vulkan Instance
@@ -483,49 +653,17 @@ fn load_dummy_shaders(device: vk.Device) !void {
 // Main code
 pub fn main() !u8 {
     glfw.setErrorCallback(glfw_error_callback);
+    var gpa: std.heap.GeneralPurposeAllocator(.{}) = .{};
+    defer _ = gpa.deinit();
 
-    switch (builtin.os.tag.isDarwin()) {
-        true => {
-            glfw.initVulkanLoader(@ptrCast(&static_vulkan.vkGetInstanceProcAddr));
-            if (!glfw.init(.{})) {
-                std.log.err("failed to initialize GLFW: {?s}", .{ glfw.getErrorString() });
-                return 1;
-            }
-
-            if (!glfw.vulkanSupported()) {
-                std.log.err("GLFW: Vulkan Not Supported", .{});
-                return 1;
-            }
-        },
-        else => {
-            if (!glfw.init(.{})) {
-                std.log.err("failed to initialize GLFW: {?s}", .{ glfw.getErrorString() });
-                return 1;
-            }
-
-            if (!glfw.vulkanSupported()) {
-                std.log.err("GLFW: Vulkan Not Supported", .{});
-
-                if (build_options.CPU_RENDERING_FALLBACK) {
-                    glfw.terminate();
-
-                    std.log.err("Falling back to CPU rendering...", .{});
-                    glfw.initVulkanLoader(@ptrCast(&static_vulkan.vkGetInstanceProcAddr));
-                    if (!glfw.init(.{})) {
-                        std.log.err("failed to initialize GLFW: {?s}", .{ glfw.getErrorString() });
-                        return 1;
-                    }
-
-                    if (!glfw.vulkanSupported()) {
-                        std.log.err("GLFW: Vulkan Not Supported", .{});
-                        return 1;
-                    }
-                } else {
-                    return 1;
-                }
-            }
-        },
-    }
+    // We need to provide an extra flag during Vulkan Instance creation when
+    // using MoltenVK, this variable is used to track what driver we ended up
+    // using so we can set the flag correctly.
+    const vulkan_driver = load_glfw_and_vulkan_driver(gpa.allocator())
+        catch |err| switch (err) {
+            error.InitFailed => return 1,
+            else => return err,
+        };
     defer glfw.terminate();
 
     // Create window with Vulkan context
@@ -542,9 +680,7 @@ pub fn main() !u8 {
     };
     defer window.destroy();
 
-    var gpa: std.heap.GeneralPurposeAllocator(.{}) = .{};
-    defer _ = gpa.deinit();
-    var init_info = try setup_vulkan(gpa.allocator());
+    var init_info = try setup_vulkan(gpa.allocator(), vulkan_driver);
 
     // Create Window Surface
     const surface = blk: {

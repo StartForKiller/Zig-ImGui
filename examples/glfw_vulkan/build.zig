@@ -1,6 +1,5 @@
 const std = @import("std");
 
-const xcode_frameworks = @import("xcode_frameworks");
 const ZigImGui_build_script = @import("ZigImGui");
 
 
@@ -9,12 +8,19 @@ const ShaderCompiler = struct {
     run_step: *std.Build.Step.Run,
 };
 
+const VulkanDriverMode = enum {
+    disable,
+    dynamic,
+    static,
+};
+
 fn create_imgui_glfw_static_lib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     glfw_dep: *std.Build.Dependency,
     imgui_dep: *std.Build.Dependency,
+    lazy_xcode_dep: ?*std.Build.Dependency,
     ZigImGui_dep: *std.Build.Dependency,
 ) *std.Build.Step.Compile {
     // compile the desired backend into a separate static library
@@ -42,7 +48,17 @@ fn create_imgui_glfw_static_lib(
 
     // this backend needs glfw and opengl headers as well
     imgui_glfw.addIncludePath(glfw_dep.path("include/"));
-    xcode_frameworks.addPaths(&imgui_glfw.root_module);
+    if (lazy_xcode_dep) |xcode_dep| {
+        imgui_glfw.root_module.addSystemFrameworkPath(.{
+            .cwd_relative = xcode_dep.builder.pathFromRoot("Frameworks/")
+        });
+        imgui_glfw.root_module.addSystemIncludePath(.{
+            .cwd_relative = xcode_dep.builder.pathFromRoot("include/")
+        });
+        imgui_glfw.root_module.addLibraryPath(.{
+            .cwd_relative = xcode_dep.builder.pathFromRoot("lib/")
+        });
+    }
 
     imgui_glfw.addCSourceFile(.{
         .file = imgui_dep.path("backends/imgui_impl_glfw.cpp"),
@@ -166,17 +182,59 @@ pub fn build(b: *std.Build) !void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    const cpu_rendering_fallback = b.option(
-        bool,
-        "cpu_rendering_fallback",
-        "When enabled, a CPU Vulkan renderer (swiftshader) will be " ++
-        "statically included in the binary to use if a suitable vulkan " ++
-        "driver cannot be found at runtime. Can bloat the binary size " ++
-        "significantly. On MacOS, this replaces the vulkan driver " ++
-        "completely, and is disabled by default. For other platforms, " ++
-        "Default=true for debug builds, false for release builds",
+    const moltenvk_driver_mode_raw = b.option(
+        []const u8,
+        "moltenvk_driver_mode",
+        "This setting does nothing on non-MacOS targets. " ++
+        "Contrary to what is necessary on all other platforms, on MacOS it " ++
+        "is possible to statically link a GPU accelerated Vulkan driver " ++
+        "into your application. This can have performance benefits, but it " ++
+        "will also bloat the size on disk of your program. Another " ++
+        "limitation is that it isn't possible to statically link two " ++
+        "different Vulkan drivers in one binary due to C namespace " ++
+        "limitations. With the build options presented here, you can " ++
+        "choose 0 or 1 driver to statically link, and what the preferred " ++
+        "load method for that driver should be. At runtime, users can " ++
+        "override which driver is loaded with environment variables, and " ++
+        "this option only sets the default. Default=static",
     )
-        orelse (!target.result.os.tag.isDarwin() and optimize == .Debug);
+        orelse "static";
+
+    const swiftshader_driver_mode_raw = b.option(
+        []const u8,
+        "swiftshader_driver_mode",
+        "This setting chooses if and how SwiftShader, a fallback CPU " ++
+        "rendering Vulkan driver, will be included in/with the program. If " ++
+        "included, should a suitable Vulkan driver not be found at " ++
+        "runtime, SwiftShader will be used instead. Can bloat the program " ++
+        "size on disk. At runtime, users can override which driver is " ++
+        "loaded with environment variables, and this option only sets the " ++
+        "default. Default=dynamic on MacOS, static everywhere else",
+    )
+        orelse if (target.result.os.tag.isDarwin()) "dynamic" else "static";
+
+    const swiftshader_jit_mode = b.option(
+        []const u8,
+        "swiftshader_jit_mode",
+        "SwiftShader can include one of three JITs for generating native " ++
+        "code from runtime shaders. LLVMv10, LLVMv16, and Subzero. If " ++
+        "you're not sure what to set this too, do not set this options and " ++
+        "an appropriate default will be selected for your build. Does " ++
+        "nothing when swiftshader_driver_mode=disable",
+    );
+
+    const moltenvk_mode = std.meta.stringToEnum(VulkanDriverMode, moltenvk_driver_mode_raw)
+        orelse return error.InvalidDriverMode;
+    const swiftshader_mode = std.meta.stringToEnum(VulkanDriverMode, swiftshader_driver_mode_raw)
+        orelse return error.InvalidDriverMode;
+
+    if (target.result.os.tag.isDarwin()) {
+        if (moltenvk_mode == .static and swiftshader_mode == .static) {
+            return error.BothVulkanDriversCannotBeStatic;
+        } else if (moltenvk_mode == .disable and swiftshader_mode == .disable) {
+            return error.NoVulkanDriverIncluded;
+        }
+    }
 
     const use_system_vk_xml = b.option(
         bool,
@@ -192,6 +250,10 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
     const glfw_dep = mach_glfw_dep.builder.dependency("glfw", .{ .target = target, .optimize = optimize });
+    const lazy_xcode_dep = switch (target.result.os.tag.isDarwin()) {
+        true => b.lazyDependency("xcode_frameworks", .{ .target = target, .optimize = optimize }),
+        else => null,
+    };
     const vulkan_docs_dep = b.dependency("vulkan_docs", .{});
     const vulkan_headers_dep = glfw_dep.builder.dependency("vulkan_headers", .{});
     const vulkan_zig_dep = b.dependency("vulkan_zig", .{
@@ -212,6 +274,7 @@ pub fn build(b: *std.Build) !void {
         optimize,
         glfw_dep,
         imgui_dep,
+        lazy_xcode_dep,
         ZigImGui_dep,
     );
     const imgui_vulkan = create_imgui_vulkan_static_lib(
@@ -262,93 +325,89 @@ pub fn build(b: *std.Build) !void {
     exe.linkLibrary(imgui_glfw);
     exe.linkLibrary(imgui_vulkan);
 
-    if (cpu_rendering_fallback) {
+    if (swiftshader_mode == .dynamic or moltenvk_mode == .dynamic) {
         switch (target.result.os.tag) {
-            .ios, .macos, .watchos, .tvos => switch (target.result.cpu.arch) {
-                .aarch64 => if (b.lazyDependency(
-                    "swiftshader",
-                    .{
-                        .target = target,
-                        .optimize = .ReleaseSmall,
-                        .jit_mode = switch (optimize) {
-                            .Debug => @as([]const u8, "LLVMv10"),
-                            else => @as([]const u8, "LLVMv16"),
-                        },
-                    },
-                )) |swiftshader_dep| {
-                    exe.linkLibrary(swiftshader_dep.artifact("vk_swiftshader_static"));
-                },
-                .x86_64 => if (b.lazyDependency(
-                    "swiftshader",
-                    .{
-                        .target = target,
-                        .optimize = .ReleaseSmall,
-                        .jit_mode = switch (optimize) {
-                            .Debug => @as([]const u8, "Subzero"),
-                            else => @as([]const u8, "LLVMv16"),
-                        },
-                    },
-                )) |swiftshader_dep| {
-                    exe.linkLibrary(swiftshader_dep.artifact("vk_swiftshader_static"));
-                },
-                else => return error.UnsupportedCPUArchitecture,
-            },
-            .linux => if (b.lazyDependency(
-                "swiftshader",
-                .{
-                    .target = target,
-                    .optimize = .ReleaseSmall,
-                    .jit_mode = switch (optimize) {
-                        .Debug => switch (target.result.cpu.arch) {
-                            .arm, .mipsel, .x86, .x86_64 => @as([]const u8, "Subzero"),
-                            .riscv64 => @as([]const u8, "LLVMv16"),
-                            else => @as([]const u8, "LLVMv10"),
-                        },
-                        else => switch (target.result.cpu.arch) {
-                            .arm, .x86 => @as([]const u8, "LLVMv10"),
-                            else => @as([]const u8, "LLVMv16"),
-                        },
-                    },
-                },
-            )) |swiftshader_dep| {
-                exe.linkLibrary(swiftshader_dep.artifact("vk_swiftshader_static"));
-            },
-            .windows => if (b.lazyDependency(
-                "swiftshader",
-                .{
-                    .target = target,
-                    .optimize = .ReleaseSmall,
-                    .jit_mode = switch (optimize) {
-                        .Debug => switch (target.result.cpu.arch) {
-                            .x86, .x86_64 => @as([]const u8, "Subzero"),
-                            else => @as([]const u8, "LLVMv10"),
-                        },
-                        else => switch (target.result.cpu.arch) {
-                            .x86 => @as([]const u8, "LLVMv10"),
-                            else => @as([]const u8, "LLVMv16"),
-                        },
-                    },
-                },
-            )) |swiftshader_dep| {
-                exe.linkLibrary(swiftshader_dep.artifact("vk_swiftshader_static"));
-            },
+            .ios, .macos, .watchos, .tvos => exe.root_module.addRPathSpecial("@executable_path"),
+            .linux => exe.root_module.addRPathSpecial("$ORIGIN"),
             else => {},
         }
-    } else if (target.result.isDarwin()) {
-        if (b.lazyDependency("MoltenVK", .{})) |MoltenVK_dep| {
-            xcode_frameworks.addPaths(&exe.root_module);
+    }
 
-            exe.linkFramework("IOSurface");
-            exe.linkFramework("Metal");
-            exe.linkFramework("QuartzCore");
-            exe.addLibraryPath(MoltenVK_dep.path("MoltenVK/static/MoltenVK.xcframework/macos-arm64_x86_64"));
-            exe.linkSystemLibrary("MoltenVK");
+    if (target.result.os.tag.isDarwin()) {
+        if (b.lazyDependency("MoltenVK", .{})) |MoltenVK_dep| {
+            switch (moltenvk_mode) {
+                .disable => {},
+                .dynamic => exe.step.dependOn(
+                    &b.addInstallBinFile(
+                        MoltenVK_dep.path("MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib"),
+                        "libMoltenVK.dylib",
+                    ).step
+                ),
+                .static => {
+                    if (lazy_xcode_dep) |xcode_dep| {
+                        exe.root_module.addSystemFrameworkPath(.{
+                            .cwd_relative = xcode_dep.builder.pathFromRoot("Frameworks/")
+                        });
+                        exe.root_module.addSystemIncludePath(.{
+                            .cwd_relative = xcode_dep.builder.pathFromRoot("include/")
+                        });
+                        exe.root_module.addLibraryPath(.{
+                            .cwd_relative = xcode_dep.builder.pathFromRoot("lib/")
+                        });
+
+                        exe.linkFramework("IOSurface");
+                        exe.linkFramework("Metal");
+                        exe.linkFramework("QuartzCore");
+
+                        exe.addLibraryPath(MoltenVK_dep.path("MoltenVK/static/MoltenVK.xcframework/macos-arm64_x86_64"));
+                        exe.linkSystemLibrary("MoltenVK");
+                    }
+                },
+            }
+        }
+    }
+
+    if (swiftshader_mode != .disable) {
+        const lazy_swiftshader_dep = b.lazyDependency("swiftshader_zigbuild", .{
+            .target = target,
+            .optimize = .ReleaseSmall,
+            .jit_mode = swiftshader_jit_mode orelse switch (optimize) {
+                .Debug => switch (target.result.cpu.arch) {
+                    .arm, .mipsel, .x86, .x86_64 => @as([]const u8, "Subzero"),
+                    .riscv64 => @as([]const u8, "LLVMv16"),
+                    else => @as([]const u8, "LLVMv10"),
+                },
+                else => @as([]const u8, "LLVMv16"),
+            },
+        });
+
+        if (lazy_swiftshader_dep) |swiftshader_dep| {
+            switch (swiftshader_mode) {
+                .disable => unreachable,
+                .static => exe.linkLibrary(swiftshader_dep.artifact("vk_swiftshader_static")),
+                .dynamic => {
+                    const install_artifact = b.addInstallArtifact(
+                        swiftshader_dep.artifact("vk_swiftshader"),
+                        .{
+                            .dest_dir = .{ .override = .bin },
+                            .dest_sub_path = switch (target.result.os.tag) {
+                                .ios, .macos, .watchos, .tvos => "libvk_swiftshader.dylib",
+                                .windows => "vk_swiftshader.dll",
+                                else => "libvk_swiftshader.so", // every other OS is Linux :D
+                            },
+                            .implib_dir = .disabled,
+                        },
+                    );
+                    exe.step.dependOn(&install_artifact.step);
+                },
+            }
         }
     }
 
     {
         const opts = b.addOptions();
-        opts.addOption(bool, "CPU_RENDERING_FALLBACK", cpu_rendering_fallback);
+        opts.addOption(VulkanDriverMode, "MOLTENVK_DRIVER_MODE", moltenvk_mode);
+        opts.addOption(VulkanDriverMode, "SWIFTSHADER_DRIVER_MODE", swiftshader_mode);
         exe.root_module.addImport("build_options", opts.createModule());
     }
 
