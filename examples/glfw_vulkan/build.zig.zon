@@ -51,10 +51,10 @@
             .url = "https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.8/MoltenVK-macos.tar",
         },
         .swiftshader_zigbuild = .{
-            .hash = "122004f6e88c9ef2f7e9dfefc499b0cabdade4c9466824487a5bca3f95071e3321c6",
+            .hash = "1220b232e1de6b049e8a3994c9e1ab6b7bb23289fa8a002f5b4ddb92431ea28f4802",
             .lazy = true,
             // .path = "../../../swiftshader_zig/",
-            .url = "git+https://codeberg.org/joshua-software-dev/swiftshader_zigbuild.git#288943aed7bb78154184c9b807fc38237267e489",
+            .url = "git+https://codeberg.org/joshua-software-dev/swiftshader_zigbuild.git#dd39a0d925cdd1861f5613d45e339d314aa8c443",
         },
         .vulkan_docs = .{
             .hash = "12203f13b015a969821cce5bd8dbd16fdc9f5a94f1352d8e140b0aa6c633016e535a",
