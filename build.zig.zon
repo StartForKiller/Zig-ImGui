@@ -3,9 +3,9 @@
     .version = "1.90.4",
     .dependencies = .{
         .freetype = .{
-            .hash = "12208c57b72e3fb5c8d5d3e667e2e21ca1d9e2b6fc3f84182b320f63933f591823da",
+            .hash = "122045b7d7ead5ec0ff4d148381902dd03749356858f7defb0b00560136612fe73a0",
             .lazy = true,
-            .url = "git+https://github.com/hexops/freetype.git#398638fd1cb723e478658ea371fe3be1a4dce0ae",
+            .url = "git+https://github.com/jayschwa/freetype.git#012a865d210780dda1ea29eab43eb0bb5e4b197f",
         },
         .generator = .{
             .path = "generator/",
