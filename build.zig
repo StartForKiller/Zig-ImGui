@@ -34,18 +34,16 @@ pub fn build(b: *std.Build) !void {
         "Enable building lunasvg to provide better emoji support in freetype. Requires freetype to be enabled."
     ) orelse false;
 
-    const freetype_dep: ?*std.Build.Dependency =
-        if (enable_freetype)
-            b.lazyDependency("freetype", .{ .target = target, .optimize = optimize })
-        else
-            null;
+    const freetype_dep: ?*std.Build.Dependency = switch (enable_freetype) {
+        true => b.lazyDependency("freetype", .{ .target = target, .optimize = optimize }),
+        else => null,
+    };
     const generator_dep = b.dependency("generator", .{});
     const imgui_dep = b.dependency("imgui", .{});
-    const lunasvg_dep: ?*std.Build.Dependency =
-        if (enable_freetype)
-            b.lazyDependency("lunasvg", .{})
-        else
-            null;
+    const lunasvg_dep: ?*std.Build.Dependency = switch (enable_freetype and enable_lunasvg) {
+        true => b.lazyDependency("lunasvg", .{}),
+        else => null,
+    };
 
     const cli_generate_step = b.step(
         "generate",
@@ -69,7 +67,7 @@ pub fn build(b: *std.Build) !void {
     }
 
     const imgui_sources: []const std.Build.LazyPath = &.{
-        .{ .path = "src/generated/cimgui.cpp" },
+        b.path("src/generated/cimgui.cpp"),
         imgui_dep.path("imgui.cpp"),
         imgui_dep.path("imgui_demo.cpp"),
         imgui_dep.path("imgui_draw.cpp"),
@@ -80,7 +78,7 @@ pub fn build(b: *std.Build) !void {
     for (IMGUI_C_DEFINES) |c_define| {
         cimgui.root_module.addCMacro(c_define[0], c_define[1]);
     }
-    cimgui.addIncludePath(.{ .path = "src/generated/" });
+    cimgui.addIncludePath(b.path("src/generated/"));
     cimgui.addIncludePath(imgui_dep.path("."));
     for (imgui_sources) |file| {
         cimgui.addCSourceFile(.{
@@ -149,21 +147,21 @@ pub fn build(b: *std.Build) !void {
 
         cimgui.addIncludePath(imgui_dep.path("misc/freetype"));
         cimgui.addCSourceFile(.{
-            .file = .{ .path = "src/vendor/imgui_freetype.cpp" },
+            .file = b.path("src/vendor/imgui_freetype.cpp"),
             .flags = IMGUI_C_FLAGS,
         });
     }
     b.installArtifact(cimgui);
 
     const zig_imgui = b.addModule("Zig-ImGui", .{
-        .root_source_file = .{ .path = "src/generated/imgui.zig" },
+        .root_source_file = b.path("src/generated/imgui.zig"),
         .target = target,
         .optimize = optimize,
     });
     zig_imgui.linkLibrary(cimgui);
 
     const test_exe = b.addTest(.{
-        .root_source_file = .{ .path = "src/tests.zig" },
+        .root_source_file = b.path("src/tests.zig"),
         .target = target,
         .optimize = optimize,
     });

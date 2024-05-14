@@ -51,11 +51,6 @@
             .lazy = true,
             .url = "git+https://codeberg.org/joshua-software-dev/lua51_zigbuild.git#cee802cbb1ea4388b33a585eb4a83ba4e1864a4c",
         },
-        .python_w2c2zig = .{
-            .hash = "1220eb9edfa3fac2d7f09e34eeb5cd482aef8ce11f75b8bfbc85b74f4e1a75781cee",
-            .lazy = true,
-            .url = "git+https://codeberg.org/joshua-software-dev/python_w2c2zig.git#26df189bfea7b405ac5dd1cfe71017b56bd090eb",
-        },
     },
 
     // Specifies the set of files and directories that are included in this package.

@@ -27,10 +27,10 @@ pub fn build(b: *std.Build) !void {
 
     // hopefully, this can be replaced by a rewrite in zig in the future, until
     // then, python is necessary to generate the bindings
-    const python_path: ?[]const u8 = blk: {
+    const python_path = blk: {
         const path = b.findProgram(&.{ "python", "python3" }, &.{})
             catch |err| switch (err) {
-                error.FileNotFound => break :blk null,
+                error.FileNotFound => return error.Python3NotFound,
                 else => return err,
             };
 
@@ -44,7 +44,7 @@ pub fn build(b: *std.Build) !void {
         });
 
         switch (result.term) {
-            .Exited => |e| if (e != 0) break :blk null,
+            .Exited => |e| if (e != 0) return error.PythonUnexpectedError,
             else => unreachable,
         }
         break :blk path;
@@ -61,20 +61,6 @@ pub fn build(b: *std.Build) !void {
         break :blk null;
     };
 
-    const python_w2c2zig_dep: ?*std.Build.Dependency = blk: {
-        if (python_path == null) {
-            break :blk b.lazyDependency("python_w2c2zig", .{
-                .target = b.host,
-                .optimize = .ReleaseFast,
-            });
-        }
-
-        break :blk null;
-    };
-
-    const cimgui_generator_lazypath = cimgui_dep.path("generator/");
-    const cimgui_generator_path = cimgui_generator_lazypath.getPath(b);
-
     const cimgui_generate_command =
         if (lua_path) |path|
             b.addSystemCommand(&.{ path })
@@ -83,130 +69,133 @@ pub fn build(b: *std.Build) !void {
         else
             b.addSystemCommand(&.{ "luajit" });
 
+    cimgui_generate_command.setCwd(cimgui_dep.path("generator/"));
+    cimgui_generate_command.addFileArg(cimgui_dep.path("generator/generator.lua"));
     cimgui_generate_command.addArgs(&.{
-        b.pathJoin(&.{ cimgui_generator_path, "generator.lua" }),
         b.fmt("{s} cc", .{ b.graph.zig_exe }),
         "freetype",
         "-DIMGUI_ENABLE_STB_TRUETYPE -DIMGUI_USE_WCHAR32",
     });
-    cimgui_generate_command.setCwd(cimgui_generator_lazypath);
-    cimgui_generate_command.setEnvironmentVariable("IMGUI_PATH", imgui_dep.path("").getPath(b));
+
+    {
+        const imgui_path = try std.fs.path.relative(
+            b.allocator,
+            cimgui_dep.path("generator/").getPath(b),
+            imgui_dep.path("/").getPath(b),
+        );
+        defer b.allocator.free(imgui_path);
+
+        cimgui_generate_command.setEnvironmentVariable("IMGUI_PATH", imgui_path);
+    }
 
     const fix_tool = b.addExecutable(.{
         .name = "fix_cimgui_sources",
-        .root_source_file = .{ .path = "src/fixup_generated_cimgui.zig" },
+        .root_source_file = b.path("src/fixup_generated_cimgui.zig"),
         .target = b.host,
     });
     const fix_step = b.addRunArtifact(fix_tool);
     fix_step.step.dependOn(&cimgui_generate_command.step);
-    fix_step.addArg(cimgui_dep.path("").getPath(b));
+    fix_step.addFileArg(cimgui_dep.path("/"));
 
     const write_step = b.addWriteFiles();
     write_step.step.dependOn(&fix_step.step);
     write_step.addCopyFileToSource(
-        .{ .cwd_relative = cimgui_dep.path("cimgui.cpp").getPath(b) },
+        cimgui_dep.path("cimgui.cpp"),
         "../src/generated/cimgui.cpp"
     );
     write_step.addCopyFileToSource(
-        .{ .cwd_relative = cimgui_dep.path("cimgui.h").getPath(b) },
+        cimgui_dep.path("cimgui.h"),
         "../src/generated/cimgui.h"
     );
 
-    const python_generate_command =
-        if (python_path) |path|
-            b.addSystemCommand(&.{ path })
-        else
-            b.addRunArtifact(python_w2c2zig_dep.?.artifact("CPython"));
+    const python_generate_command = b.addSystemCommand(&.{ python_path });
     python_generate_command.step.dependOn(&write_step.step);
     python_generate_command.setEnvironmentVariable("PYTHONDONTWRITEBYTECODE", "1");
+    python_generate_command.addFileArg(b.path("generate.py"));
 
-    var temp_path_arena = std.heap.ArenaAllocator.init(b.allocator);
-    defer temp_path_arena.deinit();
+    {
+        const cmds_json_relpath = try std.fs.path.relative(
+            b.allocator,
+            b.build_root.path orelse return error.InvalidBuildRoot,
+            cimgui_dep.path("generator/output/definitions.json").getPath(b),
+        );
+        defer b.allocator.free(cmds_json_relpath);
 
-    python_generate_command.addArg(
-        try std.fs.path.relative(
-            temp_path_arena.allocator(),
-            b.pathFromRoot("."),
-            b.pathFromRoot("generate.py"),
-        ),
-    );
-    _ = temp_path_arena.reset(.free_all);
+        python_generate_command.setEnvironmentVariable(
+            "COMMANDS_JSON_FILE",
+            cmds_json_relpath,
+        );
+    }
 
-    python_generate_command.setEnvironmentVariable(
-        "COMMANDS_JSON_FILE",
-        try std.fs.path.relative(
-            temp_path_arena.allocator(),
-            b.pathFromRoot("."),
-            b.pathJoin(&.{
-                cimgui_generator_path,
-                "output",
-                "definitions.json",
-            }),
-        ),
-    );
-    _ = temp_path_arena.reset(.free_all);
+    {
+        const impl_json_relpath = try std.fs.path.relative(
+            b.allocator,
+            b.build_root.path orelse return error.InvalidBuildRoot,
+            cimgui_dep.path("generator/output/definitions_impl.json").getPath(b),
+        );
+        defer b.allocator.free(impl_json_relpath);
 
-    python_generate_command.setEnvironmentVariable(
-        "IMPL_JSON_FILE",
-        try std.fs.path.relative(
-            temp_path_arena.allocator(),
-            b.pathFromRoot("."),
-            b.pathJoin(&.{
-                cimgui_generator_path,
-                "output",
-                "definitions_impl.json",
-            }),
-        ),
-    );
-    _ = temp_path_arena.reset(.free_all);
+        python_generate_command.setEnvironmentVariable(
+            "IMPL_JSON_FILE",
+            impl_json_relpath,
+        );
+    }
 
-    python_generate_command.setEnvironmentVariable(
-        "OUTPUT_PATH",
-        try std.fs.path.relative(
-            temp_path_arena.allocator(),
-            b.pathFromRoot("."),
+    {
+        const output_relpath = try std.fs.path.relative(
+            b.allocator,
+            b.build_root.path orelse return error.InvalidBuildRoot,
             b.pathFromRoot("../src/generated/imgui.zig"),
-        ),
-    );
-    _ = temp_path_arena.reset(.free_all);
+        );
+        defer b.allocator.free(output_relpath);
 
-    python_generate_command.setEnvironmentVariable(
-        "STRUCT_JSON_FILE",
-        try std.fs.path.relative(
-            temp_path_arena.allocator(),
-            b.pathFromRoot("."),
-            b.pathJoin(&.{
-                cimgui_generator_path,
-                "output",
-                "structs_and_enums.json",
-            }),
-        ),
-    );
-    _ = temp_path_arena.reset(.free_all);
+        python_generate_command.setEnvironmentVariable(
+            "OUTPUT_PATH",
+            output_relpath,
+        );
+    }
 
-    python_generate_command.setEnvironmentVariable(
-        "TEMPLATE_FILE",
-        try std.fs.path.relative(
-            temp_path_arena.allocator(),
-            b.pathFromRoot("."),
-            b.pathFromRoot("src/template.zig"),
-        ),
-    );
-    _ = temp_path_arena.reset(.free_all);
+    {
+        const struct_json_relpath = try std.fs.path.relative(
+            b.allocator,
+            b.build_root.path orelse return error.InvalidBuildRoot,
+            cimgui_dep.path("generator/output/structs_and_enums.json").getPath(b),
+        );
+        defer b.allocator.free(struct_json_relpath);
 
-    python_generate_command.setEnvironmentVariable(
-        "TYPEDEFS_JSON_FILE",
-        try std.fs.path.relative(
-            temp_path_arena.allocator(),
-            b.pathFromRoot("."),
-            b.pathJoin(&.{
-                cimgui_generator_path,
-                "output",
-                "typedefs_dict.json",
-            }),
-        ),
-    );
-    _ = temp_path_arena.reset(.free_all);
+        python_generate_command.setEnvironmentVariable(
+            "STRUCT_JSON_FILE",
+            struct_json_relpath,
+        );
+    }
+
+    {
+        const template_file_relpath = try std.fs.path.relative(
+            b.allocator,
+            b.build_root.path orelse return error.InvalidBuildRoot,
+            b.path("src/template.zig").getPath(b),
+        );
+        defer b.allocator.free(template_file_relpath);
+
+        python_generate_command.setEnvironmentVariable(
+            "TEMPLATE_FILE",
+            template_file_relpath,
+        );
+    }
+
+    {
+        const typedef_json_relpath = try std.fs.path.relative(
+            b.allocator,
+            b.build_root.path orelse return error.InvalidBuildRoot,
+            cimgui_dep.path("generator/output/typedefs_dict.json").getPath(b),
+        );
+        defer b.allocator.free(typedef_json_relpath);
+
+        python_generate_command.setEnvironmentVariable(
+            "TYPEDEFS_JSON_FILE",
+            typedef_json_relpath,
+        );
+    }
 
     b.getInstallStep().dependOn(&python_generate_command.step);
 }

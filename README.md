@@ -4,7 +4,7 @@ Zig-ImGui uses [cimgui](https://github.com/cimgui/cimgui) to generate [Zig](http
 
 It is currently up to date with [Dear ImGui v1.90.4](https://github.com/ocornut/imgui/releases/tag/v1.90.4).
 
-At the time of writing, Zig-ImGui has been validated against zig `0.12.0-dev.2817+7461309b7`
+At the time of writing, Zig-ImGui has been validated against zig `0.12.0` stable.
 
 ## Using the pre-generated bindings
 
@@ -76,7 +76,7 @@ Zig-ImGui strives to be easy to use.  To use the pre-generated bindings, do the 
     // exes and shared libraries are also fine
     const my_static_lib = b.addStaticLibrary(.{
         .name = "my_static_lib",
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -118,7 +118,7 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "example",
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -223,7 +223,7 @@ Nullability and array-ness of pointer parameters is hand-tuned by the logic in g
 
 ## Generating new bindings
 
-To use a different version of Dear ImGui, new bindings need to be generated. You can set your preferred version in Zig-ImGui's `build.zig.zon` and `src/generator/build.zig.zon`, and then use the `zig build generate` command to do the necessary generation. It is preferable to have luajit or lua5.1 and python3 in $PATH for use in the generation, but if they are not available there, then they will instead be built from source by the `build.zig` script.
+To use a different version of Dear ImGui, new bindings need to be generated. You can set your preferred version in Zig-ImGui's `build.zig.zon` and `src/generator/build.zig.zon`, and then use the `zig build generate` command to do the necessary generation. It is required to have python3 available in $PATH as either `python` or `python3`. It is also preferable to have luajit or lua5.1 in $PATH for use in the generation, but if unavailable, then lua will instead be built from source by the `build.zig` script.
 
 Some changes to Dear ImGui may require more in-depth changes to generate correct bindings. You may need to check for updates to upstream cimgui, or add rules to `src/generator/generate.py`.
 

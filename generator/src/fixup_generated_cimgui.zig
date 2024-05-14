@@ -43,7 +43,8 @@ fn fix_cpp(allocator: std.mem.Allocator, input_folder: []const u8) !void {
     });
     defer allocator.free(path);
 
-    const file = try std.fs.openFileAbsolute(path, .{ .mode = .read_write });
+    const cwd = std.fs.cwd();
+    const file = try cwd.openFile(path, .{ .mode = .read_write });
     defer file.close();
 
     var cpp_contents = std.ArrayList(u8).init(allocator);
@@ -103,7 +104,8 @@ fn fix_h(allocator: std.mem.Allocator, input_folder: []const u8) !void {
     });
     defer allocator.free(path);
 
-    const file = try std.fs.openFileAbsolute(path, .{ .mode = .read_write });
+    const cwd = std.fs.cwd();
+    const file = try cwd.openFile(path, .{ .mode = .read_write });
     defer file.close();
 
     var h_contents = std.ArrayList(u8).init(allocator);
