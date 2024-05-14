@@ -37,13 +37,13 @@
         //    .path = "foo",
         //},
         .glslang = .{
-            .hash = "1220b2cdab3c4a05c8044d7e45e9e6d7296e49a0504e4be41fb55171811a6f1bd5d7",
+            .hash = "12206902a25ede6b043d921e0ac8df7068ced9c71a31d820123d0ef3863b43d6a235",
             .lazy = true,
-            .url = "git+https://gitlab.com/joshua.software.dev/glslang-zig.git#815fd3460c9f45030495516ee9a6ddac47f59aa9",
+            .url = "git+https://gitlab.com/joshua.software.dev/glslang-zig.git#289811036d5662b629819af32411249c22045641",
         },
         .mach_glfw = .{
-            .hash = "12207679d7344c1d1208e68af38000197257205d8188e8a9b4898c00cabb0cd66613",
-            .url = "git+https://codeberg.org/joshua-software-dev/mach-glfw-unrestricted.git#89ddd37e2578e313ef09c855857e4dd71fab81fa",
+            .hash = "12203a2a1e0b30ff9994b32c031ca286acd558a00690f6608ed0ae2c3005e62d504d",
+            .url = "git+https://github.com/paperdave/mach-glfw.git#1794c985f8f2d7d471de40b97617fdd58524f29b",
         },
         .MoltenVK = .{
             .hash = "12202e83f182946d8b22c8a219e2a85aca5fdb5fe1de3953b8f28b1e2ffd8d0c2241",
@@ -51,22 +51,18 @@
             .url = "https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.8/MoltenVK-macos.tar",
         },
         .swiftshader_zigbuild = .{
-            .hash = "1220b232e1de6b049e8a3994c9e1ab6b7bb23289fa8a002f5b4ddb92431ea28f4802",
+            .hash = "122024bec564fd03e6031e73e0e93852b40c7e3e701b40c5b2013073e3308a57a120",
             .lazy = true,
             // .path = "../../../swiftshader_zig/",
-            .url = "git+https://codeberg.org/joshua-software-dev/swiftshader_zigbuild.git#dd39a0d925cdd1861f5613d45e339d314aa8c443",
+            .url = "git+https://codeberg.org/joshua-software-dev/swiftshader_zigbuild.git#5a7a2928cee252bac624e28e09034b364910060c",
         },
         .vulkan_docs = .{
             .hash = "12203f13b015a969821cce5bd8dbd16fdc9f5a94f1352d8e140b0aa6c633016e535a",
             .url = "git+https://github.com/KhronosGroup/Vulkan-Docs.git#69ba4fefbafa045d0fd1b07060b768b3b1c115cc",
         },
         .vulkan_zig = .{
-            .hash = "122085abbcfa0328f5f6e0e702d25ee0a61bb92d0ce9ba415a2fea1d33f43129cb66",
-            .url = "git+https://github.com/Snektron/vulkan-zig.git#ac4103a733c479b599aae8d42c08cabd7d5cf48a",
-        },
-        .xcode_frameworks = .{
-            .hash = "122010c1a745ea06dee3012fbd3b311bd3d75ec39ded6bf566b36ebe3cd8da482347",
-            .url = "git+https://github.com/hexops/xcode-frameworks.git#2fca968efa90a4060803c56dd0f027890353f0a9",
+            .hash = "12203dd92af51de24d95545584c376f2d76698ff0b73d5e5b1cf0e1e12bba2ca4d48",
+            .url = "git+https://github.com/Snektron/vulkan-zig.git#839191168399ff38ad115fbec57b74e1406f14a9",
         },
         .ZigImGui = .{
             .path = "../../",

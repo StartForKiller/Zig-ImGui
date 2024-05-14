@@ -11,6 +11,7 @@ fn create_imgui_glfw_static_lib(
     glfw_dep: *std.Build.Dependency,
     imgui_dep: *std.Build.Dependency,
     ZigImGui_dep: *std.Build.Dependency,
+    lazy_xcode_dep: ?*std.Build.Dependency,
 ) *std.Build.Step.Compile {
     // compile the desired backend into a separate static library
     const imgui_glfw = b.addStaticLibrary(.{
@@ -18,7 +19,7 @@ fn create_imgui_glfw_static_lib(
         .target = target,
         .optimize = optimize,
     });
-    imgui_glfw.root_module.link_libcpp = true;
+    imgui_glfw.linkLibCpp();
     // link in the necessary symbols from ImGui base
     imgui_glfw.linkLibrary(ZigImGui_dep.artifact("cimgui"));
 
@@ -35,8 +36,23 @@ fn create_imgui_glfw_static_lib(
     imgui_glfw.addIncludePath(imgui_dep.path("."));
     imgui_glfw.addIncludePath(imgui_dep.path("backends/"));
 
-    // this backend needs glfw and opengl headers as well
-    imgui_glfw.addIncludePath(glfw_dep.path("include/"));
+    // Linking a compiled artifact auto-includes its headers now, fetch it here
+    // so Dear ImGui's GLFW implementation can use it.
+    const glfw_lib = glfw_dep.artifact("glfw");
+
+    // For MacOS specifically, ensure we include system headers that zig
+    // doesn't by default, which the xcode_frameworks project helpfully
+    // provides.
+    if (lazy_xcode_dep) |xcode_dep| {
+        glfw_lib.addSystemFrameworkPath(xcode_dep.path("Frameworks/"));
+        glfw_lib.addSystemIncludePath(xcode_dep.path("include/"));
+        glfw_lib.addLibraryPath(xcode_dep.path("lib/"));
+
+        imgui_glfw.addSystemFrameworkPath(xcode_dep.path("Frameworks/"));
+        imgui_glfw.addSystemIncludePath(xcode_dep.path("include/"));
+        imgui_glfw.addLibraryPath(xcode_dep.path("lib/"));
+    }
+    imgui_glfw.linkLibrary(glfw_lib);
 
     imgui_glfw.addCSourceFile(.{
         .file = imgui_dep.path("backends/imgui_impl_glfw.cpp"),
@@ -109,7 +125,7 @@ fn create_imgui_opengl_static_lib(
         .target = target,
         .optimize = optimize,
     });
-    imgui_opengl.root_module.link_libcpp = true;
+    imgui_opengl.linkLibCpp();
     // link in the necessary symbols from ImGui base
     imgui_opengl.linkLibrary(ZigImGui_dep.artifact("cimgui"));
 
@@ -181,6 +197,10 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
     const glfw_dep = mach_glfw_dep.builder.dependency("glfw", .{ .target = target, .optimize = optimize });
+    const lazy_xcode_dep = switch (target.result.os.tag.isDarwin()) {
+        true => glfw_dep.builder.lazyDependency("xcode_frameworks", .{ .target = target, .optimize = optimize }),
+        else => null,
+    };
     const zgl_dep = b.dependency("zgl", .{
         .target = target,
         .optimize = optimize,
@@ -201,7 +221,15 @@ pub fn build(b: *std.Build) !void {
     });
     const imgui_dep = ZigImGui_dep.builder.dependency("imgui", .{ .target = target, .optimize = optimize });
 
-    const imgui_glfw = create_imgui_glfw_static_lib(b, target, optimize, glfw_dep, imgui_dep, ZigImGui_dep);
+    const imgui_glfw = create_imgui_glfw_static_lib(
+        b,
+        target,
+        optimize,
+        glfw_dep,
+        imgui_dep,
+        ZigImGui_dep,
+        lazy_xcode_dep,
+    );
     const imgui_opengl = try create_imgui_opengl_static_lib(
         b,
         target,
@@ -219,7 +247,7 @@ pub fn build(b: *std.Build) !void {
 
     const exe = b.addExecutable(.{
         .name = "example_glfw_opengl",
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -235,6 +263,11 @@ pub fn build(b: *std.Build) !void {
         exe.root_module.addImport("build_options", opts.createModule());
     }
 
+    if (lazy_xcode_dep) |xcode_dep| {
+        exe.addSystemFrameworkPath(xcode_dep.path("Frameworks/"));
+        exe.addSystemIncludePath(xcode_dep.path("include/"));
+        exe.addLibraryPath(xcode_dep.path("lib/"));
+    }
     exe.linkLibrary(imgui_glfw);
     exe.linkLibrary(imgui_opengl);
 

@@ -20,8 +20,8 @@ fn create_imgui_glfw_static_lib(
     optimize: std.builtin.OptimizeMode,
     glfw_dep: *std.Build.Dependency,
     imgui_dep: *std.Build.Dependency,
-    lazy_xcode_dep: ?*std.Build.Dependency,
     ZigImGui_dep: *std.Build.Dependency,
+    lazy_xcode_dep: ?*std.Build.Dependency,
 ) *std.Build.Step.Compile {
     // compile the desired backend into a separate static library
     const imgui_glfw = b.addStaticLibrary(.{
@@ -29,7 +29,7 @@ fn create_imgui_glfw_static_lib(
         .target = target,
         .optimize = optimize,
     });
-    imgui_glfw.root_module.link_libcpp = true;
+    imgui_glfw.linkLibCpp();
     // link in the necessary symbols from ImGui base
     imgui_glfw.linkLibrary(ZigImGui_dep.artifact("cimgui"));
 
@@ -46,19 +46,25 @@ fn create_imgui_glfw_static_lib(
     imgui_glfw.addIncludePath(imgui_dep.path("."));
     imgui_glfw.addIncludePath(imgui_dep.path("backends/"));
 
-    // this backend needs glfw and opengl headers as well
-    imgui_glfw.addIncludePath(glfw_dep.path("include/"));
+    // Linking a compiled artifact auto-includes its headers now, fetch it here
+    // so Dear ImGui's GLFW implementation can use it.
+    const glfw_lib = glfw_dep.artifact("glfw");
+
+    // For MacOS specifically, ensure we include system headers that zig
+    // doesn't by default, which the xcode_frameworks project helpfully
+    // provides.
     if (lazy_xcode_dep) |xcode_dep| {
-        imgui_glfw.root_module.addSystemFrameworkPath(.{
-            .cwd_relative = xcode_dep.builder.pathFromRoot("Frameworks/")
-        });
-        imgui_glfw.root_module.addSystemIncludePath(.{
-            .cwd_relative = xcode_dep.builder.pathFromRoot("include/")
-        });
-        imgui_glfw.root_module.addLibraryPath(.{
-            .cwd_relative = xcode_dep.builder.pathFromRoot("lib/")
-        });
+        // It feels like adding these paths shouldn't be necessary for this
+        // dependency, but it is.
+        glfw_lib.addSystemFrameworkPath(xcode_dep.path("Frameworks/"));
+        glfw_lib.addSystemIncludePath(xcode_dep.path("include/"));
+        glfw_lib.addLibraryPath(xcode_dep.path("lib/"));
+
+        imgui_glfw.addSystemFrameworkPath(xcode_dep.path("Frameworks/"));
+        imgui_glfw.addSystemIncludePath(xcode_dep.path("include/"));
+        imgui_glfw.addLibraryPath(xcode_dep.path("lib/"));
     }
+    imgui_glfw.linkLibrary(glfw_lib);
 
     imgui_glfw.addCSourceFile(.{
         .file = imgui_dep.path("backends/imgui_impl_glfw.cpp"),
@@ -83,7 +89,7 @@ fn create_imgui_vulkan_static_lib(
         .target = target,
         .optimize = optimize,
     });
-    imgui_vulkan.root_module.link_libcpp = true;
+    imgui_vulkan.linkLibCpp();
     // link in the necessary symbols from ImGui base
     imgui_vulkan.linkLibrary(ZigImGui_dep.artifact("cimgui"));
 
@@ -251,7 +257,7 @@ pub fn build(b: *std.Build) !void {
     });
     const glfw_dep = mach_glfw_dep.builder.dependency("glfw", .{ .target = target, .optimize = optimize });
     const lazy_xcode_dep = switch (target.result.os.tag.isDarwin()) {
-        true => b.lazyDependency("xcode_frameworks", .{ .target = target, .optimize = optimize }),
+        true => glfw_dep.builder.lazyDependency("xcode_frameworks", .{ .target = target, .optimize = optimize }),
         else => null,
     };
     const vulkan_docs_dep = b.dependency("vulkan_docs", .{});
@@ -274,8 +280,8 @@ pub fn build(b: *std.Build) !void {
         optimize,
         glfw_dep,
         imgui_dep,
-        lazy_xcode_dep,
         ZigImGui_dep,
+        lazy_xcode_dep,
     );
     const imgui_vulkan = create_imgui_vulkan_static_lib(
         b,
@@ -300,12 +306,21 @@ pub fn build(b: *std.Build) !void {
                 };
 
                 const gen_cmd = b.addRunArtifact(vulkan_zig_dep.artifact("generator"));
-                gen_cmd.addFileArg(
-                    if (use_system_vk_xml and found_system_vk_xml)
-                        .{ .path = SYSTEM_VULKAN_PATH }
-                    else
-                        vulkan_docs_dep.path("xml/vk.xml")
-                );
+                const xml_file = blk2: {
+                    if (use_system_vk_xml and found_system_vk_xml) {
+                        const sys_vulkan_path = try std.fs.path.relative(
+                            b.allocator,
+                            b.build_root.path orelse return error.InvalidBuildRoot,
+                            SYSTEM_VULKAN_PATH,
+                        );
+                        defer b.allocator.free(sys_vulkan_path);
+
+                        break :blk2 b.path(sys_vulkan_path);
+                    }
+
+                    break :blk2 vulkan_docs_dep.path("xml/vk.xml");
+                };
+                gen_cmd.addFileArg(xml_file);
 
                 break :blk b.addModule("vk", .{ .root_source_file = gen_cmd.addOutputFileArg("vk.zig") });
             },
@@ -315,12 +330,18 @@ pub fn build(b: *std.Build) !void {
 
     const exe = b.addExecutable(.{
         .name = "example_glfw_vulkan",
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
     for (imports) |import| {
         exe.root_module.addImport(import.name, import.module);
+    }
+
+    if (lazy_xcode_dep) |xcode_dep| {
+        exe.addSystemFrameworkPath(xcode_dep.path("Frameworks/"));
+        exe.addSystemIncludePath(xcode_dep.path("include/"));
+        exe.addLibraryPath(xcode_dep.path("lib/"));
     }
     exe.linkLibrary(imgui_glfw);
     exe.linkLibrary(imgui_vulkan);
@@ -344,24 +365,12 @@ pub fn build(b: *std.Build) !void {
                     ).step
                 ),
                 .static => {
-                    if (lazy_xcode_dep) |xcode_dep| {
-                        exe.root_module.addSystemFrameworkPath(.{
-                            .cwd_relative = xcode_dep.builder.pathFromRoot("Frameworks/")
-                        });
-                        exe.root_module.addSystemIncludePath(.{
-                            .cwd_relative = xcode_dep.builder.pathFromRoot("include/")
-                        });
-                        exe.root_module.addLibraryPath(.{
-                            .cwd_relative = xcode_dep.builder.pathFromRoot("lib/")
-                        });
+                    exe.linkFramework("IOSurface");
+                    exe.linkFramework("Metal");
+                    exe.linkFramework("QuartzCore");
 
-                        exe.linkFramework("IOSurface");
-                        exe.linkFramework("Metal");
-                        exe.linkFramework("QuartzCore");
-
-                        exe.addLibraryPath(MoltenVK_dep.path("MoltenVK/static/MoltenVK.xcframework/macos-arm64_x86_64"));
-                        exe.linkSystemLibrary("MoltenVK");
-                    }
+                    exe.addLibraryPath(MoltenVK_dep.path("MoltenVK/static/MoltenVK.xcframework/macos-arm64_x86_64"));
+                    exe.linkSystemLibrary("MoltenVK");
                 },
             }
         }
@@ -420,7 +429,7 @@ pub fn build(b: *std.Build) !void {
             compile_frag_step.run_step.addArg("-fshader-stage=frag");
         },
     }
-    compile_frag_step.run_step.addFileArg(.{ .path = "src/imgui.frag.glsl" });
+    compile_frag_step.run_step.addFileArg(b.path("src/imgui.frag.glsl"));
     compile_frag_step.run_step.addArg("-o");
     const frag_spv = compile_frag_step.run_step.addOutputFileArg("imgui.frag.spv");
     exe.root_module.addAnonymousImport("imgui.frag.spv", .{ .root_source_file = frag_spv });
@@ -433,7 +442,7 @@ pub fn build(b: *std.Build) !void {
             compile_vert_step.run_step.addArg("-fshader-stage=vert");
         },
     }
-    compile_vert_step.run_step.addFileArg(.{ .path = "src/imgui.vert.glsl" });
+    compile_vert_step.run_step.addFileArg(b.path("src/imgui.vert.glsl"));
     compile_vert_step.run_step.addArg("-o");
     const vert_spv = compile_vert_step.run_step.addOutputFileArg("imgui.vert.spv");
     exe.root_module.addAnonymousImport("imgui.vert.spv", .{ .root_source_file = vert_spv });
