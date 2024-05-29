@@ -41,8 +41,8 @@
             .url = "git+https://github.com/paperdave/mach-glfw.git#1794c985f8f2d7d471de40b97617fdd58524f29b",
         },
         .zgl = .{
-            .hash = "12200f46cfbe91ae56b803f1450eecc7249950b3f2b31a429a3127531a83e01c454f",
-            .url = "git+https://codeberg.org/joshua-software-dev/zgl.git#2a2edf15d318baa3a8d8e67635c85d1984c30e7c",
+            .hash = "12200168111d26e0f293248aa88ee41da977b005d7c90f5c803d4dd841cf164e8a21",
+            .url = "git+https://codeberg.org/joshua-software-dev/zgl.git#518aece423822c85282b261a508d96d2326a2163",
         },
         .ZigImGui = .{
             .path = "../../",
