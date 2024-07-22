@@ -95,7 +95,7 @@ pub fn build(b: *std.Build) !void {
     fix_step.step.dependOn(&cimgui_generate_command.step);
     fix_step.addFileArg(cimgui_dep.path("/"));
 
-    const write_step = b.addWriteFiles();
+    const write_step = b.addUpdateSourceFiles();
     write_step.step.dependOn(&fix_step.step);
     write_step.addCopyFileToSource(cimgui_dep.path("cimgui.cpp"), "../src/generated/cimgui.cpp");
     write_step.addCopyFileToSource(cimgui_dep.path("cimgui.h"), "../src/generated/cimgui.h");
