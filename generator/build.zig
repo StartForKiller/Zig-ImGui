@@ -19,22 +19,20 @@ pub fn build(b: *std.Build) !void {
     const cimgui_dep = b.dependency("cimgui", .{});
 
     // use system lua if available to run the cimgui generator script
-    const lua_path: ?[]const u8 = b.findProgram(&.{ "luajit", "lua5.1" }, &.{})
-        catch |err| switch (err) {
-            error.FileNotFound => null,
-            else => return err,
-        };
+    const lua_path: ?[]const u8 = b.findProgram(&.{ "luajit", "lua5.1" }, &.{}) catch |err| switch (err) {
+        error.FileNotFound => null,
+        else => return err,
+    };
 
     // hopefully, this can be replaced by a rewrite in zig in the future, until
     // then, python is necessary to generate the bindings
     const python_path = blk: {
-        const path = b.findProgram(&.{ "python", "python3" }, &.{})
-            catch |err| switch (err) {
-                error.FileNotFound => return error.Python3NotFound,
-                else => return err,
-            };
+        const path = b.findProgram(&.{ "python", "python3" }, &.{}) catch |err| switch (err) {
+            error.FileNotFound => return error.Python3NotFound,
+            else => return err,
+        };
 
-        const result = try std.ChildProcess.run(.{
+        const result = try std.process.Child.run(.{
             .allocator = b.allocator,
             .argv = &.{
                 path,
@@ -63,16 +61,16 @@ pub fn build(b: *std.Build) !void {
 
     const cimgui_generate_command =
         if (lua_path) |path|
-            b.addSystemCommand(&.{ path })
-        else if (lua51_dep) |dep|
-            b.addRunArtifact(dep.artifact("lua5.1"))
-        else
-            b.addSystemCommand(&.{ "luajit" });
+        b.addSystemCommand(&.{path})
+    else if (lua51_dep) |dep|
+        b.addRunArtifact(dep.artifact("lua5.1"))
+    else
+        b.addSystemCommand(&.{"luajit"});
 
     cimgui_generate_command.setCwd(cimgui_dep.path("generator/"));
     cimgui_generate_command.addFileArg(cimgui_dep.path("generator/generator.lua"));
     cimgui_generate_command.addArgs(&.{
-        b.fmt("{s} cc", .{ b.graph.zig_exe }),
+        b.fmt("{s} cc", .{b.graph.zig_exe}),
         "freetype",
         "-DIMGUI_ENABLE_STB_TRUETYPE -DIMGUI_USE_WCHAR32",
     });
@@ -99,16 +97,10 @@ pub fn build(b: *std.Build) !void {
 
     const write_step = b.addWriteFiles();
     write_step.step.dependOn(&fix_step.step);
-    write_step.addCopyFileToSource(
-        cimgui_dep.path("cimgui.cpp"),
-        "../src/generated/cimgui.cpp"
-    );
-    write_step.addCopyFileToSource(
-        cimgui_dep.path("cimgui.h"),
-        "../src/generated/cimgui.h"
-    );
+    write_step.addCopyFileToSource(cimgui_dep.path("cimgui.cpp"), "../src/generated/cimgui.cpp");
+    write_step.addCopyFileToSource(cimgui_dep.path("cimgui.h"), "../src/generated/cimgui.h");
 
-    const python_generate_command = b.addSystemCommand(&.{ python_path });
+    const python_generate_command = b.addSystemCommand(&.{python_path});
     python_generate_command.step.dependOn(&write_step.step);
     python_generate_command.setEnvironmentVariable("PYTHONDONTWRITEBYTECODE", "1");
     python_generate_command.addFileArg(b.path("generate.py"));
